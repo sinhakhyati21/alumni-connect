@@ -5,6 +5,8 @@ import User from "@/models/User.model";
 import { uploadResume } from "@/lib/cloudinary";
 import { PDFParse } from "pdf-parse";
 
+export const maxDuration = 30;
+
 export async function POST(req: Request) {
   const session = await auth();
 

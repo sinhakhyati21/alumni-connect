@@ -9,6 +9,7 @@ export interface IUser extends Document {
   graduationYear: number;
   role: UserRole;
   emailVerified: boolean;
+  active: boolean;
   verificationToken?: string;
   profileComplete: boolean;
 
@@ -65,6 +66,7 @@ const UserSchema = new Schema<IUser>(
       required: true,
     },
     emailVerified: { type: Boolean, default: false },
+    active: { type: Boolean, default: true },
     verificationToken: { type: String, select: false },
     profileComplete: { type: Boolean, default: false },
 

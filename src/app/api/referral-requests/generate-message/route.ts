@@ -5,6 +5,8 @@ import Opportunity from "@/models/Opportunity.model";
 import User from "@/models/User.model";
 import { generateReferralMessage } from "@/lib/ai";
 
+export const maxDuration = 30;
+
 export async function POST(req: Request) {
   const session = await auth();
 

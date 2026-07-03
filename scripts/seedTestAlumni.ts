@@ -26,6 +26,7 @@ async function main() {
       graduationYear: 2022, // in the past, so role logic would also classify as alumni
       emailVerified: true,
       profileComplete: true,
+      department: "CSE",
       company: "Google",
       jobRole: "Software Engineer",
       industry: "Technology",

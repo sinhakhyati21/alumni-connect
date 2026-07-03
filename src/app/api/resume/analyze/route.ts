@@ -4,6 +4,8 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User.model";
 import { analyzeResumeWithAI } from "@/lib/ai";
 
+export const maxDuration = 30;
+
 export async function POST(req: Request) {
   const session = await auth();
 

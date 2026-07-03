@@ -4,6 +4,8 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User.model";
 import { rankAlumniWithAI } from "@/lib/ai";
 
+export const maxDuration = 30;
+
 export async function GET(req: Request) {
   const session = await auth();
 
@@ -15,6 +17,8 @@ export async function GET(req: Request) {
   const company = searchParams.get("company")?.trim();
   const jobRole = searchParams.get("jobRole")?.trim();
   const industry = searchParams.get("industry")?.trim();
+  const department = searchParams.get("department")?.trim();
+  const batch = searchParams.get("batch")?.trim();
 
   await connectDB();
 
@@ -22,6 +26,8 @@ export async function GET(req: Request) {
   if (company) query.company = { $regex: company, $options: "i" };
   if (jobRole) query.jobRole = { $regex: jobRole, $options: "i" };
   if (industry) query.industry = { $regex: industry, $options: "i" };
+  if (department) query.department = { $regex: department, $options: "i" };
+  if (batch) query.graduationYear = Number(batch);
 
   const alumni = await User.find(query).limit(30).lean();
   const student = await User.findById(session.user.id).lean();
@@ -62,6 +68,8 @@ export async function GET(req: Request) {
         company: a.company,
         jobRole: a.jobRole,
         industry: a.industry,
+        department: a.department,
+        graduationYear: a.graduationYear,
         skills: a.skills,
         contributionPoints: a.contributionPoints,
         score: r.score,

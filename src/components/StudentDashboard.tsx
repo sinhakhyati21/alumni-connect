@@ -9,6 +9,8 @@ interface AlumniResult {
   company?: string;
   jobRole?: string;
   industry?: string;
+  department?: string;
+  graduationYear?: number;
   skills?: string[];
   contributionPoints: number;
   score: number;
@@ -33,7 +35,7 @@ interface ResumeAnalysis {
 }
 
 export default function StudentDashboard() {
-  const [filters, setFilters] = useState({ company: "", jobRole: "", industry: "" });
+  const [filters, setFilters] = useState({ company: "", jobRole: "", industry: "", department: "", batch: "" });
   const [results, setResults] = useState<AlumniResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -307,6 +309,20 @@ export default function StudentDashboard() {
           className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
           value={filters.industry}
           onChange={(e) => setFilters({ ...filters, industry: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Department"
+          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+          value={filters.department}
+          onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+        />
+        <input
+          type="number"
+          placeholder="Graduation batch (year)"
+          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+          value={filters.batch}
+          onChange={(e) => setFilters({ ...filters, batch: e.target.value })}
         />
         <button
           type="submit"
