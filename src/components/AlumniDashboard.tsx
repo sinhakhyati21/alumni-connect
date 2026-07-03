@@ -5,8 +5,18 @@ import { useState, useEffect } from "react";
 interface ReferralRequestItem {
   _id: string;
   status: "pending" | "accepted" | "declined";
+  message?: string;
   opportunity?: { company: string; role: string; deadline: string };
   student?: { name: string; department?: string; skills?: string[] };
+}
+
+interface LeaderboardEntry {
+  _id: string;
+  name: string;
+  company?: string;
+  jobRole?: string;
+  contributionPoints: number;
+  referralSuccessRate: number;
 }
 
 export default function AlumniDashboard() {
@@ -23,6 +33,9 @@ export default function AlumniDashboard() {
 
   const [requests, setRequests] = useState<ReferralRequestItem[]>([]);
   const [reqLoading, setReqLoading] = useState(false);
+
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,8 +74,17 @@ export default function AlumniDashboard() {
     setReqLoading(false);
   }
 
+  async function loadLeaderboard() {
+    setLeaderboardLoading(true);
+    const res = await fetch("/api/leaderboard");
+    const data = await res.json();
+    setLeaderboard(data.leaderboard ?? []);
+    setLeaderboardLoading(false);
+  }
+
   useEffect(() => {
     loadRequests();
+    loadLeaderboard();
   }, []);
 
   async function respondToRequest(id: string, status: "accepted" | "declined") {
@@ -73,6 +95,7 @@ export default function AlumniDashboard() {
     });
     if (res.ok) {
       loadRequests();
+      loadLeaderboard();
     } else {
       const data = await res.json();
       alert(data.error ?? "Could not update request.");
@@ -178,6 +201,11 @@ export default function AlumniDashboard() {
                 {r.student.department} · {(r.student.skills ?? []).join(", ")}
               </p>
             )}
+            {r.message && (
+              <p className="mt-2 rounded-lg bg-slate-50 p-2 text-sm dark:bg-slate-900">
+                {r.message}
+              </p>
+            )}
             {r.status === "pending" && (
               <div className="mt-3 flex gap-2">
                 <button
@@ -194,6 +222,41 @@ export default function AlumniDashboard() {
                 </button>
               </div>
             )}
+          </div>
+        ))}
+      </div>
+
+      <hr className="my-10 border-slate-200 dark:border-slate-800" />
+
+      <h2 className="mb-4 text-xl font-semibold">Top contributors</h2>
+
+      {leaderboardLoading && <p className="text-sm text-slate-500">Loading leaderboard...</p>}
+
+      {!leaderboardLoading && leaderboard.length === 0 && (
+        <p className="text-sm text-slate-500">No contributions yet — accepted referrals will show up here.</p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {leaderboard.map((entry, i) => (
+          <div
+            key={entry._id}
+            className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-5 text-sm font-medium text-slate-400">{i + 1}</span>
+              <div>
+                <p className="text-sm font-medium">{entry.name}</p>
+                <p className="text-xs text-slate-500">
+                  {entry.jobRole} {entry.company ? `at ${entry.company}` : ""}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium">{entry.contributionPoints} pts</p>
+              <p className="text-xs text-slate-500">
+                {Math.round(entry.referralSuccessRate * 100)}% success rate
+              </p>
+            </div>
           </div>
         ))}
       </div>
