@@ -11,6 +11,7 @@ interface AlumniResult {
   skills?: string[];
   contributionPoints: number;
   score: number;
+  reason?: string;
 }
 
 export default function StudentDashboard() {
@@ -81,13 +82,18 @@ export default function StudentDashboard() {
           >
             <div className="flex items-center justify-between">
               <h2 className="font-medium">{alum.name}</h2>
-              <span className="text-xs text-slate-500">match score {alum.score.toFixed(1)}</span>
+              <span className="text-xs text-slate-500">{alum.score}/100 match</span>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {alum.jobRole} at {alum.company} · {alum.industry}
             </p>
             {alum.skills && alum.skills.length > 0 && (
               <p className="mt-1 text-xs text-slate-500">{alum.skills.join(", ")}</p>
+            )}
+            {alum.reason && (
+              <p className="mt-1 text-xs text-slate-500">
+                <strong>Reason:</strong> {alum.reason}
+              </p>
             )}
           </div>
         ))}
