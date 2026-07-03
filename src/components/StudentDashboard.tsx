@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type SyntheticEvent } from "react";
 
 interface AlumniResult {
   _id: string;
@@ -36,7 +36,12 @@ export default function StudentDashboard() {
   const [skillFilter, setSkillFilter] = useState("");
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
 
-  async function handleSearch(e: React.FormEvent) {
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+
+  async function handleSearch(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setSearched(true);
@@ -75,12 +80,65 @@ export default function StudentDashboard() {
     }
   }
 
+  async function handleResumeUpload() {
+    if (!resumeFile) return;
+    setResumeUploading(true);
+
+    const formData = new FormData();
+    formData.append("resume", resumeFile);
+
+    const res = await fetch("/api/resume", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    setResumeUploading(false);
+
+    if (!res.ok) {
+      alert(data.error ?? "Upload failed");
+      return;
+    }
+
+    setResumeUrl(data.resumeUrl);
+    setResumeText(data.extractedText);
+  }
+
   useEffect(() => {
     loadOpportunities();
   }, []);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
+      <div className="mb-10 rounded-lg border border-slate-200 p-6 dark:border-slate-800">
+        <h2 className="mb-2 text-xl font-semibold">AI Career Assistant</h2>
+        <p className="mb-4 text-sm text-slate-500">
+          Upload your resume to get an AI-powered ATS score, keyword suggestions, and more.
+        </p>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
+            className="text-sm"
+          />
+          <button
+            onClick={handleResumeUpload}
+            disabled={!resumeFile || resumeUploading}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {resumeUploading ? "Uploading..." : "Upload resume"}
+          </button>
+        </div>
+
+        {resumeUrl && (
+          <p className="mt-3 text-sm text-green-600">
+            Resume uploaded. Ready for analysis.
+          </p>
+        )}
+      </div>
+
       <h1 className="mb-6 text-2xl font-semibold">Find alumni</h1>
 
       <form onSubmit={handleSearch} className="mb-8 flex flex-wrap gap-3">
