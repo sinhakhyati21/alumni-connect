@@ -43,7 +43,11 @@ export async function POST(req: Request) {
   const resumeUrl = await uploadResume(buffer, `${session.user.id}-resume.pdf`);
 
   await connectDB();
-  await User.findByIdAndUpdate(session.user.id, { resumeUrl }, { runValidators: false });
+  await User.findByIdAndUpdate(
+    session.user.id,
+    { resumeUrl, resumeText: extractedText },
+    { runValidators: false }
+  );
 
   return NextResponse.json({ resumeUrl, extractedText });
 }

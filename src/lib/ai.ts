@@ -82,3 +82,94 @@ Include every candidate id exactly once, ordered best match first.`;
   const cleaned = raw.replace(/```json|```/g, "").trim();
   return JSON.parse(cleaned) as RankedResult[];
 }
+
+export async function generateReferralMessage(params: {
+  studentName: string;
+  studentDepartment?: string;
+  studentSkills?: string[];
+  resumeText?: string;
+  alumniName: string;
+  company: string;
+  role: string;
+}): Promise<string> {
+  const prompt = `Write a short, professional referral request message from a student to a college alumnus.
+
+Student: ${params.studentName}${params.studentDepartment ? `, ${params.studentDepartment}` : ""}
+Student skills: ${(params.studentSkills ?? []).join(", ") || "not specified"}
+${params.resumeText ? `Resume summary context: ${params.resumeText.slice(0, 1500)}` : ""}
+
+Alumni: ${params.alumniName}
+Company: ${params.company}
+Role being requested: ${params.role}
+
+Write a concise (under 120 words), polite, specific message the student can send to request a referral. Mention 1-2 relevant skills or experiences naturally. Don't use generic filler like "I hope this finds you well." End with a clear, low-pressure ask. Return ONLY the message text, no preamble, no quotation marks around it.`;
+
+  const res = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.6,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Groq API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content ?? "").trim();
+}
+
+const GEMINI_MODEL = "gemini-3.5-flash";
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+interface ResumeAnalysis {
+  atsScore: number;
+  missingKeywords: string[];
+  improvementSuggestions: string[];
+}
+
+export async function analyzeResumeWithAI(resumeText: string): Promise<ResumeAnalysis> {
+  const prompt = `You are an ATS (Applicant Tracking System) resume analyzer for students applying to tech/general industry roles.
+
+Resume text:
+${resumeText.slice(0, 6000)}
+
+Analyze this resume and return:
+1. An ATS compatibility score from 0-100 (based on formatting clarity, use of standard section headers, quantified achievements, and keyword density)
+2. A list of important keywords/skills that seem to be missing given the resume's apparent target field (max 8)
+3. A list of specific, actionable improvement suggestions (max 5)`;
+
+  const res = await fetch(`${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            atsScore: { type: "integer" },
+            missingKeywords: { type: "array", items: { type: "string" } },
+            improvementSuggestions: { type: "array", items: { type: "string" } },
+          },
+          required: ["atsScore", "missingKeywords", "improvementSuggestions"],
+        },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Gemini API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+  return JSON.parse(text) as ResumeAnalysis;
+}

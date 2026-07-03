@@ -16,7 +16,7 @@ export interface IUser extends Document {
   skills?: string[];
   projects?: string[];
   resumeUrl?: string;
-
+  resumeText?: string;
   company?: string;
   jobRole?: string;
   industry?: string;
@@ -72,6 +72,7 @@ const UserSchema = new Schema<IUser>(
     skills: { type: [String], default: [] },
     projects: { type: [String], default: [] },
     resumeUrl: { type: String },
+    resumeText: { type: String, select: false },
 
     company: { type: String, trim: true },
     jobRole: { type: String, trim: true },

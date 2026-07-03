@@ -25,6 +25,12 @@ interface Opportunity {
   postedBy: { name: string; company?: string };
 }
 
+interface ResumeAnalysis {
+  atsScore: number;
+  missingKeywords: string[];
+  improvementSuggestions: string[];
+}
+
 export default function StudentDashboard() {
   const [filters, setFilters] = useState({ company: "", jobRole: "", industry: "" });
   const [results, setResults] = useState<AlumniResult[]>([]);
@@ -40,6 +46,12 @@ export default function StudentDashboard() {
   const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeText, setResumeText] = useState<string | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+
+  const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const [draftMessages, setDraftMessages] = useState<Record<string, string>>({});
+  const [generatingFor, setGeneratingFor] = useState<string | null>(null);
 
   async function handleSearch(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,11 +77,18 @@ export default function StudentDashboard() {
     setOppLoading(false);
   }
 
+  async function loadExistingResume() {
+    const res = await fetch("/api/profile/me");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.resumeUrl) setResumeUrl(data.resumeUrl);
+  }
+
   async function handleRequestReferral(opportunityId: string) {
     const res = await fetch("/api/referral-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ opportunityId }),
+      body: JSON.stringify({ opportunityId, message: draftMessages[opportunityId] }),
     });
 
     if (res.ok) {
@@ -83,6 +102,7 @@ export default function StudentDashboard() {
   async function handleResumeUpload() {
     if (!resumeFile) return;
     setResumeUploading(true);
+    setAnalysis(null);
 
     const formData = new FormData();
     formData.append("resume", resumeFile);
@@ -104,8 +124,49 @@ export default function StudentDashboard() {
     setResumeText(data.extractedText);
   }
 
+  async function handleAnalyze() {
+    setAnalyzing(true);
+
+    const res = await fetch("/api/resume/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumeText }),
+    });
+
+    const data = await res.json();
+    setAnalyzing(false);
+
+    if (!res.ok) {
+      alert(data.error ?? "Analysis failed");
+      return;
+    }
+
+    setAnalysis(data);
+  }
+
+  async function handleGenerateMessage(opportunityId: string) {
+    setGeneratingFor(opportunityId);
+
+    const res = await fetch("/api/referral-requests/generate-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ opportunityId, resumeText }),
+    });
+
+    const data = await res.json();
+    setGeneratingFor(null);
+
+    if (!res.ok) {
+      alert(data.error ?? "Could not generate message");
+      return;
+    }
+
+    setDraftMessages((prev) => ({ ...prev, [opportunityId]: data.message }));
+  }
+
   useEffect(() => {
     loadOpportunities();
+    loadExistingResume();
   }, []);
 
   return (
@@ -133,9 +194,47 @@ export default function StudentDashboard() {
         </div>
 
         {resumeUrl && (
-          <p className="mt-3 text-sm text-green-600">
-            Resume uploaded. Ready for analysis.
-          </p>
+          <>
+            <p className="mt-3 text-sm text-green-600">
+              Resume on file. Ready for analysis.
+            </p>
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              className="mt-3 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
+            >
+              {analyzing ? "Analyzing..." : "Analyze resume"}
+            </button>
+          </>
+        )}
+
+        {analysis && (
+          <div className="mt-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-900">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-2xl font-semibold">{analysis.atsScore}</span>
+              <span className="text-sm text-slate-500">/ 100 ATS score</span>
+            </div>
+
+            {analysis.missingKeywords.length > 0 && (
+              <div className="mb-3">
+                <p className="mb-1 text-sm font-medium">Missing keywords</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {analysis.missingKeywords.join(", ")}
+                </p>
+              </div>
+            )}
+
+            {analysis.improvementSuggestions.length > 0 && (
+              <div>
+                <p className="mb-1 text-sm font-medium">Suggestions</p>
+                <ul className="list-inside list-disc text-sm text-slate-600 dark:text-slate-400">
+                  {analysis.improvementSuggestions.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -250,6 +349,30 @@ export default function StudentDashboard() {
             <p className="mt-1 text-xs text-slate-500">
               Posted by {opp.postedBy?.name} {opp.postedBy?.company ? `(${opp.postedBy.company})` : ""}
             </p>
+
+            {!requestedIds.has(opp._id) && (
+              <>
+                {draftMessages[opp._id] ? (
+                  <textarea
+                    value={draftMessages[opp._id]}
+                    onChange={(e) =>
+                      setDraftMessages((prev) => ({ ...prev, [opp._id]: e.target.value }))
+                    }
+                    rows={4}
+                    className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                  />
+                ) : (
+                  <button
+                    onClick={() => handleGenerateMessage(opp._id)}
+                    disabled={generatingFor === opp._id}
+                    className="mt-3 rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
+                  >
+                    {generatingFor === opp._id ? "Generating..." : "Generate referral message"}
+                  </button>
+                )}
+              </>
+            )}
+
             <button
               className="mt-3 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               disabled={requestedIds.has(opp._id)}
