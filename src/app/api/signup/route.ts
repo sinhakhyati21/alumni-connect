@@ -4,6 +4,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User.model";
+import { sendVerificationEmail } from "@/lib/email";
 
 const currentYear = new Date().getFullYear();
 
@@ -56,8 +57,11 @@ export async function POST(req: Request) {
     verificationToken,
   });
 
-  // TODO: send verificationToken via email:
-  // `${process.env.NEXTAUTH_URL}/api/verify-email?token=${verificationToken}`
+  try {
+    await sendVerificationEmail(user.email, verificationToken);
+  } catch (err) {
+    console.error("Failed to send verification email:", err);
+  }
 
   return NextResponse.json(
     { message: "Account created. Check your email to verify your account.", role: user.role },
