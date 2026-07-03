@@ -8,6 +8,7 @@ export interface IReferralRequest extends Document {
   alumni: Types.ObjectId; // denormalized from opportunity.postedBy for faster queries
   status: ReferralStatus;
   message?: string;
+  followUpMessage?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +24,7 @@ const ReferralRequestSchema = new Schema<IReferralRequest>(
       default: "pending",
     },
     message: { type: String, trim: true },
+    followUpMessage: { type: String, trim: true },
   },
   { timestamps: true }
 );

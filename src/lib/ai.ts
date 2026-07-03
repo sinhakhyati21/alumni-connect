@@ -125,6 +125,45 @@ Write a concise (under 120 words), polite, specific message the student can send
   return (data.choices?.[0]?.message?.content ?? "").trim();
 }
 
+export async function generateFollowUpMessage(params: {
+  studentName: string;
+  alumniName: string;
+  company: string;
+  role: string;
+  daysSinceRequest: number;
+}): Promise<string> {
+  const prompt = `Write a short, polite follow-up message from a student to an alumnus who hasn't responded to a referral request yet.
+
+Student: ${params.studentName}
+Alumni: ${params.alumniName}
+Company: ${params.company}
+Role: ${params.role}
+Days since the original request: ${params.daysSinceRequest}
+
+Write a brief (under 80 words), low-pressure follow-up. Acknowledge they're likely busy, gently re-state the ask, and make it easy to say no or redirect. Don't be pushy or guilt-trippy. Return ONLY the message text, no preamble, no quotation marks.`;
+
+  const res = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.6,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Groq API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content ?? "").trim();
+}
+
+
 const GEMINI_MODEL = "gemini-3.5-flash";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 

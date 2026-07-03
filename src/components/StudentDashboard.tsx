@@ -34,6 +34,12 @@ interface ResumeAnalysis {
   improvementSuggestions: string[];
 }
 
+interface MyRequest {
+  _id: string;
+  status: "pending" | "accepted" | "declined";
+  opportunity?: { company: string; role: string };
+}
+
 export default function StudentDashboard() {
   const [filters, setFilters] = useState({ company: "", jobRole: "", industry: "", department: "", batch: "" });
   const [results, setResults] = useState<AlumniResult[]>([]);
@@ -57,6 +63,10 @@ export default function StudentDashboard() {
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
 
   const [studentSkills, setStudentSkills] = useState<string[]>([]);
+
+  const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
+  const [followUps, setFollowUps] = useState<Record<string, string>>({});
+  const [generatingFollowUp, setGeneratingFollowUp] = useState<string | null>(null);
 
   async function handleSearch(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,6 +100,12 @@ export default function StudentDashboard() {
     setStudentSkills(data.skills ?? []);
   }
 
+  async function loadMyRequests() {
+    const res = await fetch("/api/referral-requests");
+    const data = await res.json();
+    setMyRequests(data.requests ?? []);
+  }
+
   async function handleRequestReferral(opportunityId: string) {
     const res = await fetch("/api/referral-requests", {
       method: "POST",
@@ -99,6 +115,7 @@ export default function StudentDashboard() {
 
     if (res.ok) {
       setRequestedIds((prev) => new Set(prev).add(opportunityId));
+      loadMyRequests();
     } else {
       const data = await res.json();
       alert(data.error ?? "Could not send request.");
@@ -170,6 +187,22 @@ export default function StudentDashboard() {
     setDraftMessages((prev) => ({ ...prev, [opportunityId]: data.message }));
   }
 
+  async function handleGenerateFollowUp(requestId: string) {
+    setGeneratingFollowUp(requestId);
+    const res = await fetch(`/api/referral-requests/${requestId}/follow-up`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    setGeneratingFollowUp(null);
+
+    if (!res.ok) {
+      alert(data.error ?? "Could not generate follow-up");
+      return;
+    }
+
+    setFollowUps((prev) => ({ ...prev, [requestId]: data.message }));
+  }
+
   function getSkillMatch(requiredSkills: string[]) {
     const studentSet = new Set(studentSkills.map((s) => s.toLowerCase()));
     const required = requiredSkills.map((s) => s.toLowerCase());
@@ -182,6 +215,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     loadOpportunities();
     loadProfile();
+    loadMyRequests();
   }, []);
 
   const sortedOpportunities = [...opportunities].sort((a, b) => {
@@ -267,7 +301,7 @@ export default function StudentDashboard() {
                   <li key={r.skill} className="text-sm">
                     <span className="text-slate-500">{r.skill}:</span>{" "}
                     
-                    <a  href={r.url}
+                    <a href={r.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
@@ -450,6 +484,55 @@ export default function StudentDashboard() {
             </div>
           );
         })}
+      </div>
+
+      <hr className="my-10 border-slate-200 dark:border-slate-800" />
+
+      <h2 className="mb-4 text-xl font-semibold">My referral requests</h2>
+
+      {myRequests.length === 0 && (
+        <p className="text-sm text-slate-500">You haven't requested any referrals yet.</p>
+      )}
+
+      <div className="flex flex-col gap-4">
+        {myRequests.map((r) => (
+          <div key={r._id} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">
+                {r.opportunity?.role} at {r.opportunity?.company}
+              </h3>
+              <span
+                className={`text-xs font-medium ${
+                  r.status === "pending"
+                    ? "text-amber-600"
+                    : r.status === "accepted"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {r.status}
+              </span>
+            </div>
+
+            {r.status === "pending" && (
+              <>
+                {followUps[r._id] ? (
+                  <p className="mt-2 rounded-lg bg-slate-50 p-2 text-sm dark:bg-slate-900">
+                    {followUps[r._id]}
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => handleGenerateFollowUp(r._id)}
+                    disabled={generatingFollowUp === r._id}
+                    className="mt-2 rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
+                  >
+                    {generatingFollowUp === r._id ? "Sending..." : "Generate & send follow-up"}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ))}
       </div>
     </main>
   );

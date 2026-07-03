@@ -6,6 +6,7 @@ interface ReferralRequestItem {
   _id: string;
   status: "pending" | "accepted" | "declined";
   message?: string;
+  followUpMessage?: string;
   opportunity?: { company: string; role: string; deadline: string };
   student?: { name: string; department?: string; skills?: string[] };
 }
@@ -205,6 +206,12 @@ export default function AlumniDashboard() {
               <p className="mt-2 rounded-lg bg-slate-50 p-2 text-sm dark:bg-slate-900">
                 {r.message}
               </p>
+            )}
+            {r.followUpMessage && (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-900 dark:bg-amber-950">
+                <p className="mb-1 text-xs font-medium text-amber-700 dark:text-amber-400">Follow-up</p>
+                <p className="text-sm">{r.followUpMessage}</p>
+              </div>
             )}
             {r.status === "pending" && (
               <div className="mt-3 flex gap-2">
