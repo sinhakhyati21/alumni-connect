@@ -11,7 +11,10 @@ export async function GET() {
   }
 
   await connectDB();
-  const user = await User.findById(session.user.id).select("resumeUrl");
+  const user = await User.findById(session.user.id).select("resumeUrl skills");
 
-  return NextResponse.json({ resumeUrl: user?.resumeUrl ?? null });
+  return NextResponse.json({
+    resumeUrl: user?.resumeUrl ?? null,
+    skills: user?.skills ?? [],
+  });
 }

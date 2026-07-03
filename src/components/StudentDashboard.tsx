@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type SyntheticEvent } from "react";
+import { getRoadmapFor } from "@/lib/roadmap";
 
 interface AlumniResult {
   _id: string;
@@ -53,6 +54,8 @@ export default function StudentDashboard() {
   const [draftMessages, setDraftMessages] = useState<Record<string, string>>({});
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
 
+  const [studentSkills, setStudentSkills] = useState<string[]>([]);
+
   async function handleSearch(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -77,11 +80,12 @@ export default function StudentDashboard() {
     setOppLoading(false);
   }
 
-  async function loadExistingResume() {
+  async function loadProfile() {
     const res = await fetch("/api/profile/me");
     if (!res.ok) return;
     const data = await res.json();
     if (data.resumeUrl) setResumeUrl(data.resumeUrl);
+    setStudentSkills(data.skills ?? []);
   }
 
   async function handleRequestReferral(opportunityId: string) {
@@ -164,10 +168,25 @@ export default function StudentDashboard() {
     setDraftMessages((prev) => ({ ...prev, [opportunityId]: data.message }));
   }
 
+  function getSkillMatch(requiredSkills: string[]) {
+    const studentSet = new Set(studentSkills.map((s) => s.toLowerCase()));
+    const required = requiredSkills.map((s) => s.toLowerCase());
+    const missing = requiredSkills.filter((s) => !studentSet.has(s.toLowerCase()));
+    const matchCount = required.length - missing.length;
+    const matchPercent = required.length > 0 ? Math.round((matchCount / required.length) * 100) : 0;
+    return { missing, matchPercent };
+  }
+
   useEffect(() => {
     loadOpportunities();
-    loadExistingResume();
+    loadProfile();
   }, []);
+
+  const sortedOpportunities = [...opportunities].sort((a, b) => {
+    const matchA = getSkillMatch(a.requiredSkills).matchPercent;
+    const matchB = getSkillMatch(b.requiredSkills).matchPercent;
+    return matchB - matchA;
+  });
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -233,6 +252,33 @@ export default function StudentDashboard() {
                   ))}
                 </ul>
               </div>
+            )}
+          </div>
+        )}
+
+        {analysis && analysis.missingKeywords.length > 0 && (
+          <div className="mt-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+            <p className="mb-2 text-sm font-medium">Suggested learning resources</p>
+            {getRoadmapFor(analysis.missingKeywords).length > 0 ? (
+              <ul className="flex flex-col gap-1">
+                {getRoadmapFor(analysis.missingKeywords).map((r) => (
+                  <li key={r.skill} className="text-sm">
+                    <span className="text-slate-500">{r.skill}:</span>{" "}
+                    
+                    <a  href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {r.resource}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No curated resources for these specific keywords yet — try searching for them directly.
+              </p>
             )}
           </div>
         )}
@@ -327,61 +373,67 @@ export default function StudentDashboard() {
       )}
 
       <div className="flex flex-col gap-4">
-        {opportunities.map((opp) => (
-          <div
-            key={opp._id}
-            className="rounded-lg border border-slate-200 p-4 dark:border-slate-800"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">
-                {opp.role} at {opp.company}
-              </h3>
-              <span className="text-xs text-slate-500">
-                Deadline {new Date(opp.deadline).toLocaleDateString()}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{opp.eligibility}</p>
-            {opp.requiredSkills?.length > 0 && (
-              <p className="mt-1 text-xs text-slate-500">
-                Skills: {opp.requiredSkills.join(", ")}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-slate-500">
-              Posted by {opp.postedBy?.name} {opp.postedBy?.company ? `(${opp.postedBy.company})` : ""}
-            </p>
-
-            {!requestedIds.has(opp._id) && (
-              <>
-                {draftMessages[opp._id] ? (
-                  <textarea
-                    value={draftMessages[opp._id]}
-                    onChange={(e) =>
-                      setDraftMessages((prev) => ({ ...prev, [opp._id]: e.target.value }))
-                    }
-                    rows={4}
-                    className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                  />
-                ) : (
-                  <button
-                    onClick={() => handleGenerateMessage(opp._id)}
-                    disabled={generatingFor === opp._id}
-                    className="mt-3 rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
-                  >
-                    {generatingFor === opp._id ? "Generating..." : "Generate referral message"}
-                  </button>
-                )}
-              </>
-            )}
-
-            <button
-              className="mt-3 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              disabled={requestedIds.has(opp._id)}
-              onClick={() => handleRequestReferral(opp._id)}
+        {sortedOpportunities.map((opp) => {
+          const { missing, matchPercent } = getSkillMatch(opp.requiredSkills);
+          return (
+            <div
+              key={opp._id}
+              className="rounded-lg border border-slate-200 p-4 dark:border-slate-800"
             >
-              {requestedIds.has(opp._id) ? "Requested" : "Request referral"}
-            </button>
-          </div>
-        ))}
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">
+                  {opp.role} at {opp.company}
+                </h3>
+                <span className="text-xs font-medium text-blue-600">
+                  {matchPercent}% skill match
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{opp.eligibility}</p>
+              {opp.requiredSkills?.length > 0 && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Skills: {opp.requiredSkills.join(", ")}
+                </p>
+              )}
+              {missing.length > 0 && (
+                <p className="mt-1 text-xs text-amber-600">Missing: {missing.join(", ")}</p>
+              )}
+              <p className="mt-1 text-xs text-slate-500">
+                Posted by {opp.postedBy?.name} {opp.postedBy?.company ? `(${opp.postedBy.company})` : ""}
+              </p>
+
+              {!requestedIds.has(opp._id) && (
+                <>
+                  {draftMessages[opp._id] ? (
+                    <textarea
+                      value={draftMessages[opp._id]}
+                      onChange={(e) =>
+                        setDraftMessages((prev) => ({ ...prev, [opp._id]: e.target.value }))
+                      }
+                      rows={4}
+                      className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => handleGenerateMessage(opp._id)}
+                      disabled={generatingFor === opp._id}
+                      className="mt-3 rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
+                    >
+                      {generatingFor === opp._id ? "Generating..." : "Generate referral message"}
+                    </button>
+                  )}
+                </>
+              )}
+
+              <button
+                className="mt-3 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                disabled={requestedIds.has(opp._id)}
+                onClick={() => handleRequestReferral(opp._id)}
+              >
+                {requestedIds.has(opp._id) ? "Requested" : "Request referral"}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </main>
   );
