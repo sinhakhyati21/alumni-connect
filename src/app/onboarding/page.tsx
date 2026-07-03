@@ -192,12 +192,12 @@ export default function OnboardingPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
-          disabled={loading}
-          type="submit"
-          className="mt-2 rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-        >
-          {loading ? "Saving..." : "Save and continue"}
-        </button>
+  disabled={loading}
+  type="submit"
+  className="mt-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+>
+  {loading ? "Saving..." : "Save and continue"}
+</button>
       </form>
     </main>
   );
