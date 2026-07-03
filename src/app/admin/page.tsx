@@ -35,6 +35,27 @@ export default function AdminPage() {
     setLoading(false);
   }
 
+  async function toggleActive(userId: string, currentlyActive: boolean) {
+    const confirmed = confirm(
+      currentlyActive
+        ? "Deactivate this user? They will be flagged as inactive."
+        : "Reactivate this user?"
+    );
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !currentlyActive }),
+    });
+
+    if (res.ok) {
+      loadData();
+    } else {
+      alert("Could not update user status.");
+    }
+  }
+
   useEffect(() => {
     loadData();
   }, []);
@@ -76,7 +97,9 @@ export default function AdminPage() {
               <th className="px-4 py-2 font-medium">Role</th>
               <th className="px-4 py-2 font-medium">Verified</th>
               <th className="px-4 py-2 font-medium">Profile complete</th>
+              <th className="px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2 font-medium">Joined</th>
+              <th className="px-4 py-2 font-medium">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -87,7 +110,20 @@ export default function AdminPage() {
                 <td className="px-4 py-2 capitalize">{u.role}</td>
                 <td className="px-4 py-2">{u.emailVerified ? "Yes" : "No"}</td>
                 <td className="px-4 py-2">{u.profileComplete ? "Yes" : "No"}</td>
+                <td className="px-4 py-2">
+                  <span className={u.active === false ? "text-red-600" : "text-green-600"}>
+                    {u.active === false ? "Inactive" : "Active"}
+                  </span>
+                </td>
                 <td className="px-4 py-2">{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-2">
+                  <button
+                    onClick={() => toggleActive(u._id, u.active !== false)}
+                    className="text-xs font-medium text-blue-600 hover:underline"
+                  >
+                    {u.active === false ? "Reactivate" : "Deactivate"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
