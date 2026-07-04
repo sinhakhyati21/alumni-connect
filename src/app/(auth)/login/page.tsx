@@ -3,6 +3,7 @@
 import { useState, useEffect, type SyntheticEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import AuthLayout from "@/components/AuthLayout";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 
@@ -121,6 +122,13 @@ function LoginForm() {
             )}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-charcoal/60">
+          New here?{" "}
+          <Link href="/signup" className="font-medium text-brass hover:underline">
+            Create an account
+          </Link>
+        </p>
       </div>
     </AuthLayout>
   );

@@ -2,6 +2,7 @@
 
 import { useState, type SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import AuthLayout from "@/components/AuthLayout";
 import { User, Mail, Lock, GraduationCap, ArrowRight } from "lucide-react";
 
@@ -128,6 +129,13 @@ export default function SignupPage() {
             We use your official college email only to verify your student or alumni status and keep the network secure.
           </p>
         </form>
+
+        <p className="mt-6 text-center text-sm text-charcoal/60">
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-brass hover:underline">
+            Log in
+          </Link>
+        </p>
       </div>
     </AuthLayout>
   );
