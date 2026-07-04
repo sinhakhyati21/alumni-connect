@@ -11,10 +11,11 @@ export async function GET() {
   }
 
   await connectDB();
-  const user = await User.findById(session.user.id).select("resumeUrl skills");
+  const user = await User.findById(session.user.id).select("resumeUrl skills department");
 
   return NextResponse.json({
     resumeUrl: user?.resumeUrl ?? null,
     skills: user?.skills ?? [],
+    department: user?.department ?? null,
   });
 }

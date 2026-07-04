@@ -13,6 +13,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import VerifiedMark from "@/components/VerifiedMark";
+import jsPDF from "jspdf";
 import {
   Bot,
   Search,
@@ -95,6 +96,16 @@ export default function StudentDashboard() {
   const [resumeText, setResumeText] = useState<string | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
 
+  const [showBuilder, setShowBuilder] = useState(false);
+  const [builderForm, setBuilderForm] = useState({
+    summary: "",
+    education: "",
+    skills: "",
+    experience: "",
+    projects: "",
+  });
+  const [buildingResume, setBuildingResume] = useState(false);
+
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
@@ -145,6 +156,12 @@ export default function StudentDashboard() {
 
     if (data.resumeUrl) setResumeUrl(data.resumeUrl);
     setStudentSkills(data.skills ?? []);
+
+    setBuilderForm((prev) => ({
+      ...prev,
+      skills: data.skills?.length ? data.skills.join(", ") : prev.skills,
+      education: data.department ? `${data.department}` : prev.education,
+    }));
   }
 
   async function loadMyRequests() {
@@ -197,6 +214,69 @@ export default function StudentDashboard() {
 
     setResumeUrl(data.resumeUrl);
     setResumeText(data.extractedText);
+  }
+
+  async function handleBuildResume() {
+    setBuildingResume(true);
+    setAnalysis(null);
+
+    const res = await fetch("/api/resume/build", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(builderForm),
+    });
+
+    const data = await res.json();
+    setBuildingResume(false);
+
+    if (!res.ok) {
+      alert(data.error ?? "Could not save resume");
+      return;
+    }
+
+    setResumeUrl("built-on-platform");
+    setResumeText(data.resumeText);
+    setShowBuilder(false);
+  }
+
+  function downloadResumePDF() {
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const margin = 48;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const maxWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    function addSection(title: string, content: string) {
+      if (!content) return;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(title.toUpperCase(), margin, y);
+      y += 16;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      const lines = doc.splitTextToSize(content, maxWidth);
+      doc.text(lines, margin, y);
+      y += lines.length * 14 + 16;
+
+      if (y > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("Resume", margin, y);
+    y += 28;
+
+    addSection("Summary", builderForm.summary);
+    addSection("Education", builderForm.education);
+    addSection("Skills", builderForm.skills);
+    addSection("Experience", builderForm.experience);
+    addSection("Projects", builderForm.projects);
+
+    doc.save("resume.pdf");
   }
 
   async function handleAnalyze() {
@@ -396,36 +476,142 @@ export default function StudentDashboard() {
 
             <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
               <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <label className="flex min-h-14 flex-1 cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-blue-300 bg-white px-4 py-3 text-sm text-slate-600 transition hover:bg-blue-50">
-                    <FileText size={20} className="text-blue-700" />
-                    <span className="truncate">
-                      {resumeFile ? resumeFile.name : "Choose PDF resume"}
-                    </span>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
-                      className="hidden"
-                    />
-                  </label>
-
-                  <Button
-                    onClick={handleResumeUpload}
-                    loading={resumeUploading}
-                    disabled={!resumeFile}
+                <div className="mb-3 flex gap-2 text-sm">
+                  <button
+                    onClick={() => setShowBuilder(false)}
+                    className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
+                      !showBuilder ? "bg-blue-600 text-white" : "bg-white text-slate-600"
+                    }`}
                   >
-                    <Upload size={16} />
-                    Upload resume
-                  </Button>
+                    Upload PDF
+                  </button>
+                  <button
+                    onClick={() => setShowBuilder(true)}
+                    className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
+                      showBuilder ? "bg-blue-600 text-white" : "bg-white text-slate-600"
+                    }`}
+                  >
+                    Build on platform
+                  </button>
                 </div>
+
+                {!showBuilder ? (
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <label className="flex min-h-14 flex-1 cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-blue-300 bg-white px-4 py-3 text-sm text-slate-600 transition hover:bg-blue-50">
+                      <FileText size={20} className="text-blue-700" />
+                      <span className="truncate">
+                        {resumeFile ? resumeFile.name : "Choose PDF resume"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <Button
+                      onClick={handleResumeUpload}
+                      loading={resumeUploading}
+                      disabled={!resumeFile}
+                    >
+                      <Upload size={16} />
+                      Upload resume
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <textarea
+                      placeholder="Professional summary (2-3 sentences)"
+                      rows={2}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+                      value={builderForm.summary}
+                      onChange={(e) => setBuilderForm({ ...builderForm, summary: e.target.value })}
+                    />
+                    <textarea
+                      placeholder="Education (degree, college, year)"
+                      rows={2}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+                      value={builderForm.education}
+                      onChange={(e) => setBuilderForm({ ...builderForm, education: e.target.value })}
+                    />
+                    <textarea
+                      placeholder="Skills (comma-separated)"
+                      rows={2}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+                      value={builderForm.skills}
+                      onChange={(e) => setBuilderForm({ ...builderForm, skills: e.target.value })}
+                    />
+                    <textarea
+                      placeholder="Experience (role, company, duration, key achievements)"
+                      rows={3}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+                      value={builderForm.experience}
+                      onChange={(e) => setBuilderForm({ ...builderForm, experience: e.target.value })}
+                    />
+                    <textarea
+                      placeholder="Projects (name, description, tech used)"
+                      rows={3}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
+                      value={builderForm.projects}
+                      onChange={(e) => setBuilderForm({ ...builderForm, projects: e.target.value })}
+                    />
+
+                    {(builderForm.summary || builderForm.education || builderForm.skills || builderForm.experience || builderForm.projects) && (
+                      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Preview</p>
+                        {builderForm.summary && (
+                          <div className="mb-3">
+                            <p className="text-xs font-bold uppercase text-slate-700">Summary</p>
+                            <p className="whitespace-pre-wrap text-slate-600">{builderForm.summary}</p>
+                          </div>
+                        )}
+                        {builderForm.education && (
+                          <div className="mb-3">
+                            <p className="text-xs font-bold uppercase text-slate-700">Education</p>
+                            <p className="whitespace-pre-wrap text-slate-600">{builderForm.education}</p>
+                          </div>
+                        )}
+                        {builderForm.skills && (
+                          <div className="mb-3">
+                            <p className="text-xs font-bold uppercase text-slate-700">Skills</p>
+                            <p className="whitespace-pre-wrap text-slate-600">{builderForm.skills}</p>
+                          </div>
+                        )}
+                        {builderForm.experience && (
+                          <div className="mb-3">
+                            <p className="text-xs font-bold uppercase text-slate-700">Experience</p>
+                            <p className="whitespace-pre-wrap text-slate-600">{builderForm.experience}</p>
+                          </div>
+                        )}
+                        {builderForm.projects && (
+                          <div>
+                            <p className="text-xs font-bold uppercase text-slate-700">Projects</p>
+                            <p className="whitespace-pre-wrap text-slate-600">{builderForm.projects}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <Button onClick={handleBuildResume} loading={buildingResume}>
+                        Save resume
+                      </Button>
+                      <Button variant="secondary" onClick={downloadResumePDF}>
+                        Download as PDF
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {resumeUrl && (
                   <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="text-emerald-700" size={20} />
                       <p className="text-sm font-medium text-emerald-800">
-                        Resume on file. Ready for analysis.
+                        {resumeUrl === "built-on-platform"
+                          ? "Resume built. Ready for analysis."
+                          : "Resume on file. Ready for analysis."}
                       </p>
                     </div>
 
@@ -454,8 +640,8 @@ export default function StudentDashboard() {
                                 {r.skill}
                               </span>{" "}
                               —{" "}
-                              
-                              <a  href={r.url}
+                              <a
+                                href={r.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-medium text-blue-700 hover:underline"
