@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Opportunity from "@/models/Opportunity.model";
+import User from "@/models/User.model";
 
 const opportunitySchema = z.object({
   company: z.string().min(2).max(100),
@@ -35,6 +36,12 @@ export async function POST(req: Request) {
     postedBy: session.user.id,
   });
 
+  await User.findByIdAndUpdate(
+    session.user.id,
+    { $inc: { contributionPoints: 2 } },
+    { runValidators: false }
+  );
+
   return NextResponse.json({ opportunity }, { status: 201 });
 }
 
@@ -54,7 +61,7 @@ export async function GET(req: Request) {
   if (skillFilter) query.requiredSkills = { $regex: skillFilter, $options: "i" };
 
   const opportunities = await Opportunity.find(query)
-    .populate("postedBy", "name company seniorityScore contributionPoints referralSuccessRate")
+    .populate("postedBy", "name company seniorityScore contributionPoints referralSuccessRate verifiedBadge")
     .lean();
 
   opportunities.sort((a, b) => {

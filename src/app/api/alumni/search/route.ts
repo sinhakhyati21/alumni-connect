@@ -74,6 +74,7 @@ export async function GET(req: Request) {
         contributionPoints: a.contributionPoints,
         score: r.score,
         reason: r.reason,
+        verifiedBadge: a.verifiedBadge,
       };
     })
     .filter(Boolean);

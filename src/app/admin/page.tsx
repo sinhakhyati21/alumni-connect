@@ -22,6 +22,7 @@ interface AdminUser {
   emailVerified: boolean;
   profileComplete: boolean;
   active: boolean;
+  verifiedBadge: boolean;
   createdAt: string;
 }
 
@@ -57,6 +58,20 @@ export default function AdminPage() {
       loadData();
     } else {
       alert("Could not update user status.");
+    }
+  }
+
+  async function toggleVerifiedBadge(userId: string, currentlyVerified: boolean) {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ verifiedBadge: !currentlyVerified }),
+    });
+
+    if (res.ok) {
+      loadData();
+    } else {
+      alert("Could not update verification badge.");
     }
   }
 
@@ -112,6 +127,7 @@ export default function AdminPage() {
                     <th className="px-4 py-2 font-medium text-ink">Verified</th>
                     <th className="px-4 py-2 font-medium text-ink">Profile complete</th>
                     <th className="px-4 py-2 font-medium text-ink">Status</th>
+                    <th className="px-4 py-2 font-medium text-ink">Badge</th>
                     <th className="px-4 py-2 font-medium text-ink">Joined</th>
                     <th className="px-4 py-2 font-medium text-ink">Action</th>
                   </tr>
@@ -128,6 +144,18 @@ export default function AdminPage() {
                         <span className={u.active === false ? "text-red-700" : "text-green-700"}>
                           {u.active === false ? "Inactive" : "Active"}
                         </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        {u.role === "alumni" && (
+                          <button
+                            onClick={() => toggleVerifiedBadge(u._id, u.verifiedBadge)}
+                            className={`text-xs font-medium ${
+                              u.verifiedBadge ? "text-brass" : "text-charcoal/50"
+                            } hover:underline`}
+                          >
+                            {u.verifiedBadge ? "✓ Verified" : "Grant badge"}
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-2 text-charcoal">{new Date(u.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-2">

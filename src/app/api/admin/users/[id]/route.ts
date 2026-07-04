@@ -11,11 +11,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   const { id } = await params;
-  const { active } = await req.json();
+  const body = await req.json();
+
+  const update: Record<string, boolean> = {};
+  if (typeof body.active === "boolean") update.active = body.active;
+  if (typeof body.verifiedBadge === "boolean") update.verifiedBadge = body.verifiedBadge;
 
   await connectDB();
-
-  await User.findByIdAndUpdate(id, { active: !!active }, { runValidators: false });
+  await User.findByIdAndUpdate(id, update, { runValidators: false });
 
   return NextResponse.json({ success: true });
 }

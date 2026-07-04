@@ -22,7 +22,7 @@ export async function GET() {
       ReferralRequest.countDocuments({}),
       ReferralRequest.countDocuments({ status: "accepted" }),
       User.find({ role: { $in: ["student", "alumni"] } })
-        .select("name email role emailVerified profileComplete active createdAt")
+        .select("name email role emailVerified profileComplete active verifiedBadge createdAt")
         .sort({ createdAt: -1 })
         .limit(100)
         .lean(),

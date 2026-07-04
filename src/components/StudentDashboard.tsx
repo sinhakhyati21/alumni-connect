@@ -12,6 +12,7 @@ import StatsCard from "@/components/ui/StatsCard";
 import EmptyState from "@/components/ui/EmptyState";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import VerifiedMark from "@/components/VerifiedMark";
 import {
   Bot,
   Search,
@@ -37,6 +38,7 @@ interface AlumniResult {
   contributionPoints: number;
   score: number;
   reason?: string;
+  verifiedBadge?: boolean;
 }
 
 interface Opportunity {
@@ -47,7 +49,7 @@ interface Opportunity {
   requiredSkills: string[];
   deadline: string;
   referralLink: string;
-  postedBy: { name: string; company?: string };
+  postedBy: { name: string; company?: string; verifiedBadge?: boolean };
 }
 
 interface ResumeAnalysis {
@@ -382,8 +384,8 @@ export default function StudentDashboard() {
                                 {r.skill}
                               </span>{" "}
                               —{" "}
-                              <a
-                                href={r.url}
+                              
+                              <a  href={r.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-medium text-blue-700 hover:underline"
@@ -547,8 +549,9 @@ export default function StudentDashboard() {
                         </div>
 
                         <div>
-                          <h3 className="font-semibold text-slate-950">
+                          <h3 className="flex items-center gap-1.5 font-semibold text-slate-950">
                             {alum.name}
+                            {alum.verifiedBadge && <VerifiedMark />}
                           </h3>
 
                           <p className="mt-1 text-sm text-slate-600">
@@ -679,8 +682,9 @@ export default function StudentDashboard() {
                         </p>
                       )}
 
-                      <p className="mt-3 text-xs text-slate-500">
-                        Posted by {opp.postedBy?.name}{" "}
+                      <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+                        Posted by {opp.postedBy?.name}
+                        {opp.postedBy?.verifiedBadge && <VerifiedMark />}
                         {opp.postedBy?.company
                           ? `(${opp.postedBy.company})`
                           : ""}
