@@ -39,23 +39,42 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "This request has already been resolved" }, { status: 409 });
   }
 
+  const responseHours = (Date.now() - new Date(request.createdAt).getTime()) / (1000 * 60 * 60);
+
   request.status = parsed.data.status;
   await request.save();
 
+  // Responsiveness is tracked on every response (accept or decline).
+  const alumniDoc = await User.findById(request.alumni).select("avgResponseHours respondedRequestsCount");
+  const prevAvg = alumniDoc?.avgResponseHours ?? 0;
+  const prevCount = alumniDoc?.respondedRequestsCount ?? 0;
+  const newAvg = (prevAvg * prevCount + responseHours) / (prevCount + 1);
+
+  await User.findByIdAndUpdate(
+    request.alumni,
+    {
+      $set: { avgResponseHours: newAvg },
+      $inc: { respondedRequestsCount: 1 },
+    },
+    { runValidators: false }
+  );
+
   // Update alumni contribution stats when a referral is accepted.
   if (parsed.data.status === "accepted") {
-    const alumni = await User.findById(session.user.id);
-    if (alumni) {
-      alumni.contributionPoints = (alumni.contributionPoints ?? 0) + 10;
+    const [totalResolved, totalAccepted] = await Promise.all([
+      ReferralRequest.countDocuments({ alumni: request.alumni, status: { $in: ["accepted", "declined"] } }),
+      ReferralRequest.countDocuments({ alumni: request.alumni, status: "accepted" }),
+    ]);
+    const referralSuccessRate = totalResolved > 0 ? totalAccepted / totalResolved : 0;
 
-      const [totalResolved, totalAccepted] = await Promise.all([
-        ReferralRequest.countDocuments({ alumni: alumni._id, status: { $in: ["accepted", "declined"] } }),
-        ReferralRequest.countDocuments({ alumni: alumni._id, status: "accepted" }),
-      ]);
-      alumni.referralSuccessRate = totalResolved > 0 ? totalAccepted / totalResolved : 0;
-
-      await alumni.save();
-    }
+    await User.findByIdAndUpdate(
+      request.alumni,
+      {
+        $inc: { contributionPoints: 10 },
+        $set: { referralSuccessRate },
+      },
+      { runValidators: false }
+    );
   }
 
   return NextResponse.json({ request });

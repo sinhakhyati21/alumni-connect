@@ -10,6 +10,7 @@ interface AlumniCandidate {
   skills?: string[];
   contributionPoints: number;
   referralSuccessRate: number;
+  avgResponseHours?: number | null;
 }
 
 interface StudentProfile {
@@ -46,14 +47,18 @@ ${JSON.stringify(
     skills: c.skills,
     contributionPoints: c.contributionPoints,
     referralSuccessRate: c.referralSuccessRate,
+    typicalResponseTime: c.avgResponseHours != null
+      ? `~${Math.round(c.avgResponseHours)} hours`
+      : "no response history yet",
   })),
   null,
   2
 )}
 
 Rank these alumni from most to least relevant for this student, considering skill overlap,
-industry/role relevance to the student's likely career path, and how helpful they've been
-historically (contributionPoints, referralSuccessRate).
+industry/role relevance to the student's likely career path, and how helpful and responsive
+they've been historically (contributionPoints, referralSuccessRate, typicalResponseTime —
+faster responders should generally rank higher, all else equal).
 
 Respond with ONLY a JSON array, no other text, in this exact format:
 [{ "id": "...", "score": 0-100, "reason": "one short sentence" }, ...]
@@ -212,6 +217,7 @@ Analyze this resume and return:
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   return JSON.parse(text) as ResumeAnalysis;
 }
+
 export async function generateInterviewQuestions(params: {
   resumeText?: string;
   company: string;

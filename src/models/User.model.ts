@@ -24,6 +24,8 @@ export interface IUser extends Document {
   experienceYears?: number;
   contributionPoints: number;
   referralSuccessRate: number;
+  avgResponseHours?: number | null;
+  respondedRequestsCount: number;
   seniorityScore: number;
   verifiedBadge: boolean;
 
@@ -82,6 +84,8 @@ const UserSchema = new Schema<IUser>(
     experienceYears: { type: Number, min: 0 },
     contributionPoints: { type: Number, default: 0 },
     referralSuccessRate: { type: Number, default: 0 },
+    avgResponseHours: { type: Number, default: null },
+    respondedRequestsCount: { type: Number, default: 0 },
     seniorityScore: { type: Number, default: 0 },
     verifiedBadge: { type: Boolean, default: false },
   },

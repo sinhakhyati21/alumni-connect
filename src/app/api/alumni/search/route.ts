@@ -49,6 +49,7 @@ export async function GET(req: Request) {
         skills: a.skills,
         contributionPoints: a.contributionPoints,
         referralSuccessRate: a.referralSuccessRate,
+        avgResponseHours: a.avgResponseHours,
       }))
     );
   } catch (err) {
@@ -72,6 +73,7 @@ export async function GET(req: Request) {
         graduationYear: a.graduationYear,
         skills: a.skills,
         contributionPoints: a.contributionPoints,
+        avgResponseHours: a.avgResponseHours,
         score: r.score,
         reason: r.reason,
         verifiedBadge: a.verifiedBadge,

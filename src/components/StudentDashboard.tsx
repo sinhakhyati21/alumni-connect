@@ -39,6 +39,7 @@ interface AlumniResult {
   score: number;
   reason?: string;
   verifiedBadge?: boolean;
+  avgResponseHours?: number | null;
 }
 
 interface Opportunity {
@@ -454,7 +455,7 @@ export default function StudentDashboard() {
                               </span>{" "}
                               —{" "}
                               
-                              <a href={r.url}
+                              <a  href={r.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-medium text-blue-700 hover:underline"
@@ -634,6 +635,12 @@ export default function StudentDashboard() {
                               ? `· ${alum.graduationYear}`
                               : ""}
                           </p>
+
+                          {alum.avgResponseHours != null && (
+                            <p className="mt-0.5 text-xs text-slate-400">
+                              Typically responds in ~{Math.round(alum.avgResponseHours)}h
+                            </p>
+                          )}
                         </div>
                       </div>
 
