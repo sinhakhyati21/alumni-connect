@@ -212,3 +212,44 @@ Analyze this resume and return:
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
   return JSON.parse(text) as ResumeAnalysis;
 }
+export async function generateInterviewQuestions(params: {
+  resumeText?: string;
+  company: string;
+  role: string;
+  requiredSkills: string[];
+}): Promise<
+  { question: string; options: string[]; correctIndex: number; topic: string }[]
+> {
+  const prompt = `You are creating a technical knowledge quiz to help a student prepare for a job interview.
+
+Target company: ${params.company}
+Target role: ${params.role}
+Required skills for the role: ${params.requiredSkills.join(", ")}
+
+Generate 5 multiple-choice questions testing practical knowledge of these skills, at a level appropriate for this role. Each question should have exactly 4 options, only one correct.
+
+Respond with ONLY a JSON array in this exact format, no other text:
+[{ "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "topic": "the specific skill/topic this question tests" }, ...]`;
+
+  const res = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.4,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Groq API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const raw = data.choices?.[0]?.message?.content ?? "[]";
+  const cleaned = raw.replace(/```json|```/g, "").trim();
+  return JSON.parse(cleaned);
+}

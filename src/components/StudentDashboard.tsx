@@ -64,6 +64,13 @@ interface MyRequest {
   opportunity?: { company: string; role: string };
 }
 
+interface InterviewQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  topic: string;
+}
+
 export default function StudentDashboard() {
   const [filters, setFilters] = useState({
     company: "",
@@ -97,6 +104,11 @@ export default function StudentDashboard() {
   const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
   const [followUps, setFollowUps] = useState<Record<string, string>>({});
   const [generatingFollowUp, setGeneratingFollowUp] = useState<string | null>(null);
+
+  const [interviewPrep, setInterviewPrep] = useState<Record<string, InterviewQuestion[]>>({});
+  const [generatingPrep, setGeneratingPrep] = useState<string | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, Record<number, number>>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState<Record<string, boolean>>({});
 
   async function handleSearch(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -248,6 +260,59 @@ export default function StudentDashboard() {
       ...prev,
       [requestId]: data.message,
     }));
+  }
+
+  async function handleGenerateInterviewPrep(opportunityId: string) {
+    setGeneratingPrep(opportunityId);
+
+    const res = await fetch(`/api/opportunities/${opportunityId}/interview-prep`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumeText }),
+    });
+
+    const data = await res.json();
+    setGeneratingPrep(null);
+
+    if (!res.ok) {
+      alert(data.error ?? "Could not generate interview prep");
+      return;
+    }
+
+    setInterviewPrep((prev) => ({
+      ...prev,
+      [opportunityId]: data.questions,
+    }));
+    setQuizAnswers((prev) => ({ ...prev, [opportunityId]: {} }));
+    setQuizSubmitted((prev) => ({ ...prev, [opportunityId]: false }));
+  }
+
+  function handleSelectAnswer(opportunityId: string, questionIndex: number, optionIndex: number) {
+    setQuizAnswers((prev) => ({
+      ...prev,
+      [opportunityId]: { ...prev[opportunityId], [questionIndex]: optionIndex },
+    }));
+  }
+
+  function handleSubmitQuiz(opportunityId: string) {
+    setQuizSubmitted((prev) => ({ ...prev, [opportunityId]: true }));
+  }
+
+  function getQuizResult(opportunityId: string) {
+    const questions = interviewPrep[opportunityId] ?? [];
+    const answers = quizAnswers[opportunityId] ?? {};
+    let correct = 0;
+    const topicsToReview: string[] = [];
+
+    questions.forEach((q, i) => {
+      if (answers[i] === q.correctIndex) {
+        correct++;
+      } else {
+        topicsToReview.push(q.topic);
+      }
+    });
+
+    return { correct, total: questions.length, topicsToReview };
   }
 
   function getSkillMatch(requiredSkills: string[]) {
@@ -689,6 +754,86 @@ export default function StudentDashboard() {
                           ? `(${opp.postedBy.company})`
                           : ""}
                       </p>
+
+                      {interviewPrep[opp._id] ? (
+                        <div className="mt-4 space-y-4 rounded-2xl bg-indigo-50 p-4">
+                          <p className="text-sm font-semibold text-slate-950">
+                            Interview readiness quiz
+                          </p>
+
+                          {interviewPrep[opp._id].map((q, qi) => {
+                            const selected = quizAnswers[opp._id]?.[qi];
+                            const submitted = quizSubmitted[opp._id];
+
+                            return (
+                              <div key={qi} className="text-sm">
+                                <p className="mb-2 font-medium text-slate-950">
+                                  {qi + 1}. {q.question}
+                                </p>
+                                <div className="flex flex-col gap-1.5">
+                                  {q.options.map((opt, oi) => {
+                                    const isSelected = selected === oi;
+                                    const isCorrect = q.correctIndex === oi;
+                                    let style = "border-slate-200 bg-white";
+                                    if (submitted && isCorrect) style = "border-green-400 bg-green-50";
+                                    else if (submitted && isSelected && !isCorrect) style = "border-red-400 bg-red-50";
+                                    else if (!submitted && isSelected) style = "border-blue-400 bg-blue-50";
+
+                                    return (
+                                      <button
+                                        key={oi}
+                                        disabled={submitted}
+                                        onClick={() => handleSelectAnswer(opp._id, qi, oi)}
+                                        className={`rounded-lg border px-3 py-1.5 text-left text-xs transition-colors ${style}`}
+                                      >
+                                        {opt}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {!quizSubmitted[opp._id] ? (
+                            <Button
+                              variant="secondary"
+                              onClick={() => handleSubmitQuiz(opp._id)}
+                              disabled={
+                                Object.keys(quizAnswers[opp._id] ?? {}).length <
+                                interviewPrep[opp._id].length
+                              }
+                            >
+                              Submit answers
+                            </Button>
+                          ) : (
+                            (() => {
+                              const { correct, total, topicsToReview } = getQuizResult(opp._id);
+                              return (
+                                <div className="rounded-lg bg-white p-3">
+                                  <p className="text-sm font-semibold text-slate-950">
+                                    Score: {correct} / {total}
+                                  </p>
+                                  {topicsToReview.length > 0 && (
+                                    <p className="mt-1 text-xs text-amber-700">
+                                      Review before your interview: {topicsToReview.join(", ")}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()
+                          )}
+                        </div>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleGenerateInterviewPrep(opp._id)}
+                          loading={generatingPrep === opp._id}
+                          className="mt-3"
+                        >
+                          Prepare for interview
+                        </Button>
+                      )}
 
                       {!requestedIds.has(opp._id) && (
                         <>
