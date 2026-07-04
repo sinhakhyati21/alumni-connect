@@ -11,6 +11,7 @@
     "seed:alumni": "tsx scripts/seedTestAlumni.ts"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.2",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
     "lucide-react": "^1.23.0",
