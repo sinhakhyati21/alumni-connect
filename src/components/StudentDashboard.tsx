@@ -61,7 +61,7 @@ interface ResumeAnalysis {
 interface MyRequest {
   _id: string;
   status: "pending" | "accepted" | "declined";
-  opportunity?: { company: string; role: string };
+  opportunity?: { _id: string; company: string; role: string };
 }
 
 interface InterviewQuestion {
@@ -328,6 +328,10 @@ export default function StudentDashboard() {
     return { missing, matchPercent };
   }
 
+  const requestedOpportunityIds = new Set(
+    myRequests.map((r) => r.opportunity?._id).filter((id): id is string => !!id)
+  );
+
   useEffect(() => {
     loadOpportunities();
     loadProfile();
@@ -450,7 +454,7 @@ export default function StudentDashboard() {
                               </span>{" "}
                               —{" "}
                               
-                              <a  href={r.url}
+                              <a href={r.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="font-medium text-blue-700 hover:underline"
@@ -696,7 +700,9 @@ export default function StudentDashboard() {
               )}
 
               <div className="space-y-4">
-                {sortedOpportunities.map((opp) => {
+                {sortedOpportunities
+                  .filter((opp) => !requestedOpportunityIds.has(opp._id))
+                  .map((opp) => {
                   const { missing, matchPercent } = getSkillMatch(
                     opp.requiredSkills
                   );
@@ -835,7 +841,7 @@ export default function StudentDashboard() {
                         </Button>
                       )}
 
-                      {!requestedIds.has(opp._id) && (
+                      {!requestedOpportunityIds.has(opp._id) && (
                         <>
                           {draftMessages[opp._id] ? (
                             <textarea
@@ -864,10 +870,10 @@ export default function StudentDashboard() {
 
                       <Button
                         className="mt-3"
-                        disabled={requestedIds.has(opp._id)}
+                        disabled={requestedOpportunityIds.has(opp._id)}
                         onClick={() => handleRequestReferral(opp._id)}
                       >
-                        {requestedIds.has(opp._id)
+                        {requestedOpportunityIds.has(opp._id)
                           ? "Requested"
                           : "Request referral"}
                       </Button>

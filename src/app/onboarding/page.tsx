@@ -78,7 +78,7 @@ export default function OnboardingPage() {
 
     // Refresh the JWT so middleware stops redirecting to /onboarding
     await update({ profileComplete: true });
-    router.push("/dashboard");
+    window.location.href = "/dashboard";
   }
 
   return (

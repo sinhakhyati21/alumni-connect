@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type SyntheticEvent, Suspense } from "react";
+import { useState, useEffect, type SyntheticEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthLayout from "@/components/AuthLayout";
@@ -12,6 +12,23 @@ function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [justVerified, setJustVerified] = useState(false);
+
+  useEffect(() => {
+    const pendingEmail = sessionStorage.getItem("pendingVerifyEmail");
+    if (!pendingEmail) return;
+
+    fetch(`/api/check-verified?email=${encodeURIComponent(pendingEmail)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.verified) {
+          setJustVerified(true);
+          setError(null);
+          sessionStorage.removeItem("pendingVerifyEmail");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,11 +43,12 @@ function LoginForm() {
     setLoading(false);
 
     if (res?.error) {
-      setError(
-        res.error === "EMAIL_NOT_VERIFIED"
-          ? "Please verify your email before logging in."
-          : "Invalid email or password."
-      );
+      if (res.error === "EMAIL_NOT_VERIFIED") {
+        setError("Please verify your email before logging in.");
+        sessionStorage.setItem("pendingVerifyEmail", form.email);
+      } else {
+        setError("Invalid email or password.");
+      }
       return;
     }
 
@@ -51,6 +69,11 @@ function LoginForm() {
         {params.get("verified") && (
           <p className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
             Email verified — you can log in now.
+          </p>
+        )}
+        {justVerified && (
+          <p className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            Email is verified — you can log in now.
           </p>
         )}
 

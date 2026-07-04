@@ -62,7 +62,7 @@ export async function GET() {
       : { alumni: session.user.id };
 
   const requests = await ReferralRequest.find(filter)
-    .populate("opportunity", "company role deadline")
+    .populate("opportunity", "_id company role deadline")
     .populate("student", "name email department skills resumeUrl")
     .sort({ createdAt: -1 })
     .lean();
