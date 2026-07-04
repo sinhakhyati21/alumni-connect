@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { useRouter } from "next/navigation";
+import AuthLayout from "@/components/AuthLayout";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -37,57 +38,57 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
-      <h1 className="mb-1 text-2xl font-semibold">Create your account</h1>
-      <p className="mb-6 text-sm text-slate-500">Use your official college email.</p>
+    <AuthLayout>
+      <h1 className="font-display mb-1 text-2xl font-semibold text-ink">Create your account</h1>
+      <p className="mb-6 text-sm text-charcoal/60">Use your official college email.</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium">Full name</label>
+          <label className="mb-1 block text-sm font-medium text-charcoal">Full name</label>
           <input
             required
             type="text"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+            className="w-full rounded-lg border border-charcoal/15 px-3 py-2 focus:border-ink focus:outline-none"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">College email</label>
+          <label className="mb-1 block text-sm font-medium text-charcoal">College email</label>
           <input
             required
             type="email"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+            className="w-full rounded-lg border border-charcoal/15 px-3 py-2 focus:border-ink focus:outline-none"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">Password</label>
+          <label className="mb-1 block text-sm font-medium text-charcoal">Password</label>
           <input
             required
             minLength={8}
             type="password"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+            className="w-full rounded-lg border border-charcoal/15 px-3 py-2 focus:border-ink focus:outline-none"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">Graduation year</label>
+          <label className="mb-1 block text-sm font-medium text-charcoal">Graduation year</label>
           <input
             required
             type="number"
             min={2015}
             max={new Date().getFullYear() + 6}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+            className="w-full rounded-lg border border-charcoal/15 px-3 py-2 focus:border-ink focus:outline-none"
             value={form.graduationYear}
             onChange={(e) => setForm({ ...form, graduationYear: Number(e.target.value) })}
           />
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-charcoal/50">
             This determines whether you're a student or an alum on the platform.
           </p>
         </div>
@@ -97,11 +98,15 @@ export default function SignupPage() {
         <button
           disabled={loading}
           type="submit"
-          className="mt-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          className="mt-2 rounded-lg bg-ink px-4 py-2 font-medium text-white hover:bg-ink-light disabled:opacity-60"
         >
           {loading ? "Creating account..." : "Create account"}
         </button>
+
+        <p className="text-xs leading-relaxed text-charcoal/50">
+          We use your official college email only to verify your student or alumni status and keep the network secure.
+        </p>
       </form>
-    </main>
+    </AuthLayout>
   );
 }

@@ -2,6 +2,28 @@
 
 import { useState, useEffect, type SyntheticEvent } from "react";
 import { getRoadmapFor } from "@/lib/roadmap";
+import DashboardShell from "@/components/DashboardShell";
+import Reveal from "@/components/Reveal";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import SkillPill from "@/components/ui/SkillPill";
+import StatsCard from "@/components/ui/StatsCard";
+import EmptyState from "@/components/ui/EmptyState";
+import SectionHeader from "@/components/ui/SectionHeader";
+import StatusBadge from "@/components/ui/StatusBadge";
+import {
+  Bot,
+  Search,
+  Briefcase,
+  Handshake,
+  Upload,
+  FileText,
+  Sparkles,
+  GraduationCap,
+  Users,
+  CheckCircle2,
+} from "lucide-react";
 
 interface AlumniResult {
   _id: string;
@@ -41,7 +63,14 @@ interface MyRequest {
 }
 
 export default function StudentDashboard() {
-  const [filters, setFilters] = useState({ company: "", jobRole: "", industry: "", department: "", batch: "" });
+  const [filters, setFilters] = useState({
+    company: "",
+    jobRole: "",
+    industry: "",
+    department: "",
+    batch: "",
+  });
+
   const [results, setResults] = useState<AlumniResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -63,7 +92,6 @@ export default function StudentDashboard() {
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
 
   const [studentSkills, setStudentSkills] = useState<string[]>([]);
-
   const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
   const [followUps, setFollowUps] = useState<Record<string, string>>({});
   const [generatingFollowUp, setGeneratingFollowUp] = useState<string | null>(null);
@@ -79,6 +107,7 @@ export default function StudentDashboard() {
 
     const res = await fetch(`/api/alumni/search?${params.toString()}`);
     const data = await res.json();
+
     setResults(data.results ?? []);
     setLoading(false);
   }
@@ -88,6 +117,7 @@ export default function StudentDashboard() {
     const params = skill ? `?skill=${encodeURIComponent(skill)}` : "";
     const res = await fetch(`/api/opportunities${params}`);
     const data = await res.json();
+
     setOpportunities(data.opportunities ?? []);
     setOppLoading(false);
   }
@@ -95,7 +125,9 @@ export default function StudentDashboard() {
   async function loadProfile() {
     const res = await fetch("/api/profile/me");
     if (!res.ok) return;
+
     const data = await res.json();
+
     if (data.resumeUrl) setResumeUrl(data.resumeUrl);
     setStudentSkills(data.skills ?? []);
   }
@@ -103,6 +135,7 @@ export default function StudentDashboard() {
   async function loadMyRequests() {
     const res = await fetch("/api/referral-requests");
     const data = await res.json();
+
     setMyRequests(data.requests ?? []);
   }
 
@@ -110,7 +143,10 @@ export default function StudentDashboard() {
     const res = await fetch("/api/referral-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ opportunityId, message: draftMessages[opportunityId] }),
+      body: JSON.stringify({
+        opportunityId,
+        message: draftMessages[opportunityId],
+      }),
     });
 
     if (res.ok) {
@@ -124,6 +160,7 @@ export default function StudentDashboard() {
 
   async function handleResumeUpload() {
     if (!resumeFile) return;
+
     setResumeUploading(true);
     setAnalysis(null);
 
@@ -184,14 +221,19 @@ export default function StudentDashboard() {
       return;
     }
 
-    setDraftMessages((prev) => ({ ...prev, [opportunityId]: data.message }));
+    setDraftMessages((prev) => ({
+      ...prev,
+      [opportunityId]: data.message,
+    }));
   }
 
   async function handleGenerateFollowUp(requestId: string) {
     setGeneratingFollowUp(requestId);
+
     const res = await fetch(`/api/referral-requests/${requestId}/follow-up`, {
       method: "POST",
     });
+
     const data = await res.json();
     setGeneratingFollowUp(null);
 
@@ -200,15 +242,22 @@ export default function StudentDashboard() {
       return;
     }
 
-    setFollowUps((prev) => ({ ...prev, [requestId]: data.message }));
+    setFollowUps((prev) => ({
+      ...prev,
+      [requestId]: data.message,
+    }));
   }
 
   function getSkillMatch(requiredSkills: string[]) {
     const studentSet = new Set(studentSkills.map((s) => s.toLowerCase()));
     const required = requiredSkills.map((s) => s.toLowerCase());
-    const missing = requiredSkills.filter((s) => !studentSet.has(s.toLowerCase()));
+    const missing = requiredSkills.filter(
+      (s) => !studentSet.has(s.toLowerCase())
+    );
     const matchCount = required.length - missing.length;
-    const matchPercent = required.length > 0 ? Math.round((matchCount / required.length) * 100) : 0;
+    const matchPercent =
+      required.length > 0 ? Math.round((matchCount / required.length) * 100) : 0;
+
     return { missing, matchPercent };
   }
 
@@ -225,324 +274,529 @@ export default function StudentDashboard() {
   });
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
-      <div className="mb-10 rounded-lg border border-slate-200 p-6 dark:border-slate-800">
-        <h2 className="mb-2 text-xl font-semibold">AI Career Assistant</h2>
-        <p className="mb-4 text-sm text-slate-500">
-          Upload your resume to get an AI-powered ATS score, keyword suggestions, and more.
-        </p>
+    <DashboardShell
+      title="Welcome back"
+      subtitle="Search alumni, review opportunities, and sharpen your resume."
+    >
+      <main className="mx-auto max-w-7xl space-y-8 px-4 sm:px-6">
+        <Reveal>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <StatsCard
+              title="Alumni Found"
+              value={results.length}
+              subtitle="From search results"
+              icon={<Users size={24} />}
+            />
 
-        <div className="flex items-center gap-3">
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
-            className="text-sm"
-          />
-          <button
-            onClick={handleResumeUpload}
-            disabled={!resumeFile || resumeUploading}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {resumeUploading ? "Uploading..." : "Upload resume"}
-          </button>
+            <StatsCard
+              title="Opportunities"
+              value={opportunities.length}
+              subtitle="Open roles"
+              icon={<Briefcase size={24} />}
+              iconColor="bg-indigo-100 text-indigo-700"
+            />
+
+            <StatsCard
+              title="Requests"
+              value={myRequests.length}
+              subtitle="Referral activity"
+              icon={<Handshake size={24} />}
+              iconColor="bg-cyan-100 text-cyan-700"
+            />
+
+            <StatsCard
+              title="ATS Score"
+              value={analysis?.atsScore ?? "--"}
+              subtitle="Latest resume score"
+              icon={<Sparkles size={24} />}
+              iconColor="bg-emerald-100 text-emerald-700"
+            />
+          </div>
+        </Reveal>
+
+        <Reveal delay={60}>
+          <Card className="p-6 sm:p-8">
+            <SectionHeader
+              icon={<Bot size={24} />}
+              title="AI Career Assistant"
+              subtitle="Upload your resume to get an ATS score, missing keywords, and improvement suggestions."
+            />
+
+            <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <label className="flex min-h-14 flex-1 cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-blue-300 bg-white px-4 py-3 text-sm text-slate-600 transition hover:bg-blue-50">
+                    <FileText size={20} className="text-blue-700" />
+                    <span className="truncate">
+                      {resumeFile ? resumeFile.name : "Choose PDF resume"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <Button
+                    onClick={handleResumeUpload}
+                    loading={resumeUploading}
+                    disabled={!resumeFile}
+                  >
+                    <Upload size={16} />
+                    Upload resume
+                  </Button>
+                </div>
+
+                {resumeUrl && (
+                  <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="text-emerald-700" size={20} />
+                      <p className="text-sm font-medium text-emerald-800">
+                        Resume on file. Ready for analysis.
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="secondary"
+                      onClick={handleAnalyze}
+                      loading={analyzing}
+                    >
+                      Analyze resume
+                    </Button>
+                  </div>
+                )}
+
+                {analysis && analysis.missingKeywords.length > 0 && (
+                  <div className="mt-5 rounded-2xl bg-white p-5">
+                    <p className="mb-3 text-sm font-semibold text-slate-950">
+                      Suggested learning resources
+                    </p>
+
+                    {getRoadmapFor(analysis.missingKeywords).length > 0 ? (
+                      <ul className="space-y-3">
+                        {getRoadmapFor(analysis.missingKeywords).map((r) => (
+                          <li key={r.skill} className="text-sm">
+                            <p>
+                              <span className="font-semibold text-slate-950">
+                                {r.skill}
+                              </span>{" "}
+                              —{" "}
+                              <a
+                                href={r.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-blue-700 hover:underline"
+                              >
+                                {r.resource}
+                              </a>
+                            </p>
+
+                            {r.certification && (
+                              <p className="text-xs text-slate-500">
+                                Certification: {r.certification}
+                              </p>
+                            )}
+
+                            {r.projectIdea && (
+                              <p className="text-xs text-slate-500">
+                                Project idea: {r.projectIdea}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        No curated resources for these keywords yet.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                <p className="text-sm font-medium text-slate-500">ATS Score</p>
+
+                <div className="mt-4 flex items-end gap-2">
+                  <span className="text-5xl font-bold text-slate-950">
+                    {analysis ? analysis.atsScore : "--"}
+                  </span>
+                  <span className="pb-2 text-sm text-slate-500">/ 100</span>
+                </div>
+
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-blue-600 to-emerald-500 transition-all duration-700"
+                    style={{ width: `${analysis?.atsScore ?? 0}%` }}
+                  />
+                </div>
+
+                {analysis && (
+                  <div className="mt-5 space-y-4">
+                    {analysis.missingKeywords.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">
+                          Missing keywords
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {analysis.missingKeywords.map((keyword) => (
+                            <SkillPill key={keyword}>{keyword}</SkillPill>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {analysis.improvementSuggestions.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">
+                          Suggestions
+                        </p>
+
+                        <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-600">
+                          {analysis.improvementSuggestions.map((s, i) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        </Reveal>
+
+        <div className="grid gap-8 lg:grid-cols-2">
+          <Reveal delay={100}>
+            <Card className="p-6 sm:p-8">
+              <SectionHeader
+                icon={<Search size={24} />}
+                title="Find Alumni"
+                subtitle="Search and connect with alumni from your network."
+              />
+
+              <form onSubmit={handleSearch} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    placeholder="Company"
+                    value={filters.company}
+                    onChange={(e) =>
+                      setFilters({ ...filters, company: e.target.value })
+                    }
+                  />
+
+                  <Input
+                    placeholder="Job role"
+                    value={filters.jobRole}
+                    onChange={(e) =>
+                      setFilters({ ...filters, jobRole: e.target.value })
+                    }
+                  />
+
+                  <Input
+                    placeholder="Industry"
+                    value={filters.industry}
+                    onChange={(e) =>
+                      setFilters({ ...filters, industry: e.target.value })
+                    }
+                  />
+
+                  <Input
+                    placeholder="Department"
+                    value={filters.department}
+                    onChange={(e) =>
+                      setFilters({ ...filters, department: e.target.value })
+                    }
+                  />
+
+                  <Input
+                    type="number"
+                    placeholder="Graduation batch"
+                    value={filters.batch}
+                    onChange={(e) =>
+                      setFilters({ ...filters, batch: e.target.value })
+                    }
+                  />
+
+                  <Button type="submit" loading={loading}>
+                    Search
+                  </Button>
+                </div>
+              </form>
+
+              <div className="mt-6 space-y-4">
+                {searched && !loading && results.length === 0 && (
+                  <EmptyState
+                    icon={<Users size={28} />}
+                    title="No alumni found"
+                    description="Try changing your filters and searching again."
+                  />
+                )}
+
+                {results.map((alum) => (
+                  <div
+                    key={alum._id}
+                    className="rounded-3xl border border-slate-100 bg-slate-50/80 p-5 transition hover:bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 font-bold text-blue-800">
+                          {alum.name?.charAt(0)?.toUpperCase() ?? "A"}
+                        </div>
+
+                        <div>
+                          <h3 className="font-semibold text-slate-950">
+                            {alum.name}
+                          </h3>
+
+                          <p className="mt-1 text-sm text-slate-600">
+                            {alum.jobRole}{" "}
+                            {alum.company ? `at ${alum.company}` : ""}
+                          </p>
+
+                          <p className="text-xs text-slate-500">
+                            {alum.department}{" "}
+                            {alum.graduationYear
+                              ? `· ${alum.graduationYear}`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+
+                      <StatusBadge variant="match">
+                        {alum.score}/100
+                      </StatusBadge>
+                    </div>
+
+                    {alum.skills && alum.skills.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {alum.skills.map((skill) => (
+                          <SkillPill key={skill}>{skill}</SkillPill>
+                        ))}
+                      </div>
+                    )}
+
+                    {alum.reason && (
+                      <p className="mt-3 text-xs text-slate-500">
+                        <span className="font-semibold">Reason:</span>{" "}
+                        {alum.reason}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </Reveal>
+
+          <Reveal delay={140}>
+            <Card className="p-6 sm:p-8">
+              <SectionHeader
+                icon={<Briefcase size={24} />}
+                title="Open Opportunities"
+                subtitle="Discover roles that match your skills."
+              />
+
+              <div className="mb-6 flex gap-3">
+                <Input
+                  placeholder="Filter by skill"
+                  value={skillFilter}
+                  onChange={(e) => setSkillFilter(e.target.value)}
+                />
+
+                <Button
+                  variant="secondary"
+                  onClick={() => loadOpportunities(skillFilter)}
+                >
+                  Filter
+                </Button>
+              </div>
+
+              {oppLoading && (
+                <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+                  Loading opportunities...
+                </p>
+              )}
+
+              {!oppLoading && opportunities.length === 0 && (
+                <EmptyState
+                  icon={<Briefcase size={28} />}
+                  title="No opportunities"
+                  description="There are no open opportunities right now."
+                />
+              )}
+
+              <div className="space-y-4">
+                {sortedOpportunities.map((opp) => {
+                  const { missing, matchPercent } = getSkillMatch(
+                    opp.requiredSkills
+                  );
+
+                  return (
+                    <div
+                      key={opp._id}
+                      className="rounded-3xl border border-slate-100 bg-slate-50/80 p-5 transition hover:bg-white"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-slate-950">
+                            {opp.role}
+                          </h3>
+
+                          <p className="mt-1 text-sm text-slate-600">
+                            {opp.company}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            {opp.eligibility}
+                          </p>
+                        </div>
+
+                        <StatusBadge variant="match">
+                          {matchPercent}% Match
+                        </StatusBadge>
+                      </div>
+
+                      <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-blue-600 to-emerald-500"
+                          style={{ width: `${matchPercent}%` }}
+                        />
+                      </div>
+
+                      {opp.requiredSkills?.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {opp.requiredSkills.map((skill) => (
+                            <SkillPill key={skill}>{skill}</SkillPill>
+                          ))}
+                        </div>
+                      )}
+
+                      {missing.length > 0 && (
+                        <p className="mt-3 text-xs font-medium text-amber-700">
+                          Missing: {missing.join(", ")}
+                        </p>
+                      )}
+
+                      <p className="mt-3 text-xs text-slate-500">
+                        Posted by {opp.postedBy?.name}{" "}
+                        {opp.postedBy?.company
+                          ? `(${opp.postedBy.company})`
+                          : ""}
+                      </p>
+
+                      {!requestedIds.has(opp._id) && (
+                        <>
+                          {draftMessages[opp._id] ? (
+                            <textarea
+                              value={draftMessages[opp._id]}
+                              onChange={(e) =>
+                                setDraftMessages((prev) => ({
+                                  ...prev,
+                                  [opp._id]: e.target.value,
+                                }))
+                              }
+                              rows={4}
+                              className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                            />
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              onClick={() => handleGenerateMessage(opp._id)}
+                              loading={generatingFor === opp._id}
+                              className="mt-4"
+                            >
+                              Generate referral message
+                            </Button>
+                          )}
+                        </>
+                      )}
+
+                      <Button
+                        className="mt-3"
+                        disabled={requestedIds.has(opp._id)}
+                        onClick={() => handleRequestReferral(opp._id)}
+                      >
+                        {requestedIds.has(opp._id)
+                          ? "Requested"
+                          : "Request referral"}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </Reveal>
         </div>
 
-        {resumeUrl && (
-          <>
-            <p className="mt-3 text-sm text-green-600">
-              Resume on file. Ready for analysis.
-            </p>
-            <button
-              onClick={handleAnalyze}
-              disabled={analyzing}
-              className="mt-3 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
-            >
-              {analyzing ? "Analyzing..." : "Analyze resume"}
-            </button>
-          </>
-        )}
+        <Reveal delay={180}>
+          <Card className="p-6 sm:p-8">
+            <SectionHeader
+              icon={<Handshake size={24} />}
+              title="My Referral Requests"
+              subtitle="Track pending, accepted, and declined referral requests."
+            />
 
-        {analysis && (
-          <div className="mt-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-900">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-2xl font-semibold">{analysis.atsScore}</span>
-              <span className="text-sm text-slate-500">/ 100 ATS score</span>
-            </div>
-
-            {analysis.missingKeywords.length > 0 && (
-              <div className="mb-3">
-                <p className="mb-1 text-sm font-medium">Missing keywords</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {analysis.missingKeywords.join(", ")}
-                </p>
-              </div>
+            {myRequests.length === 0 && (
+              <EmptyState
+                icon={<Handshake size={28} />}
+                title="No referral requests"
+                description="Once you request referrals, they will appear here."
+              />
             )}
 
-            {analysis.improvementSuggestions.length > 0 && (
-              <div>
-                <p className="mb-1 text-sm font-medium">Suggestions</p>
-                <ul className="list-inside list-disc text-sm text-slate-600 dark:text-slate-400">
-                  {analysis.improvementSuggestions.map((s, i) => (
-                    <li key={i}>{s}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
+            <div className="grid gap-4 md:grid-cols-2">
+              {myRequests.map((r) => (
+                <div
+                  key={r._id}
+                  className="rounded-3xl border border-slate-100 bg-slate-50/80 p-5 transition hover:bg-white"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex gap-4">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
+                        <GraduationCap size={20} />
+                      </div>
 
-        {analysis && analysis.missingKeywords.length > 0 && (
-          <div className="mt-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-            <p className="mb-2 text-sm font-medium">Suggested learning resources</p>
-            {getRoadmapFor(analysis.missingKeywords).length > 0 ? (
-              <ul className="flex flex-col gap-3">
-                {getRoadmapFor(analysis.missingKeywords).map((r) => (
-                  <li key={r.skill} className="text-sm">
-                    <p>
-                      <span className="font-medium">{r.skill}</span>
-                      {" — "}
-                      
-                      <a  href={r.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {r.resource}
-                      </a>
-                    </p>
-                    {r.certification && (
-                      <p className="text-xs text-slate-500">Certification: {r.certification}</p>
-                    )}
-                    {r.projectIdea && (
-                      <p className="text-xs text-slate-500">Project idea: {r.projectIdea}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500">
-                No curated resources for these specific keywords yet — try searching for them directly.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-950">
+                          {r.opportunity?.role}
+                        </h3>
 
-      <h1 className="mb-6 text-2xl font-semibold">Find alumni</h1>
+                        <p className="text-sm text-slate-500">
+                          {r.opportunity?.company}
+                        </p>
+                      </div>
+                    </div>
 
-      <form onSubmit={handleSearch} className="mb-8 flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Company"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          value={filters.company}
-          onChange={(e) => setFilters({ ...filters, company: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Job role"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          value={filters.jobRole}
-          onChange={(e) => setFilters({ ...filters, jobRole: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Industry"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          value={filters.industry}
-          onChange={(e) => setFilters({ ...filters, industry: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Department"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          value={filters.department}
-          onChange={(e) => setFilters({ ...filters, department: e.target.value })}
-        />
-        <input
-          type="number"
-          placeholder="Graduation batch (year)"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          value={filters.batch}
-          onChange={(e) => setFilters({ ...filters, batch: e.target.value })}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-lg bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-        >
-          {loading ? "Searching..." : "Search"}
-        </button>
-      </form>
+                    <StatusBadge variant={r.status}>
+                      {r.status}
+                    </StatusBadge>
+                  </div>
 
-      {searched && !loading && results.length === 0 && (
-        <p className="text-sm text-slate-500">No alumni matched those filters.</p>
-      )}
-
-      <div className="flex flex-col gap-4">
-        {results.map((alum) => (
-          <div
-            key={alum._id}
-            className="rounded-lg border border-slate-200 p-4 dark:border-slate-800"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="font-medium">{alum.name}</h2>
-              <span className="text-xs text-slate-500">{alum.score}/100 match</span>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {alum.jobRole} at {alum.company} · {alum.industry}
-            </p>
-            {alum.skills && alum.skills.length > 0 && (
-              <p className="mt-1 text-xs text-slate-500">{alum.skills.join(", ")}</p>
-            )}
-            {alum.reason && (
-              <p className="mt-1 text-xs text-slate-500">
-                <strong>Reason:</strong> {alum.reason}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <hr className="my-10 border-slate-200 dark:border-slate-800" />
-
-      <h2 className="mb-4 text-xl font-semibold">Open opportunities</h2>
-
-      <div className="mb-4 flex gap-3">
-        <input
-          type="text"
-          placeholder="Filter by skill"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          value={skillFilter}
-          onChange={(e) => setSkillFilter(e.target.value)}
-        />
-        <button
-          onClick={() => loadOpportunities(skillFilter)}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
-        >
-          Filter
-        </button>
-      </div>
-
-      {oppLoading && <p className="text-sm text-slate-500">Loading opportunities...</p>}
-
-      {!oppLoading && opportunities.length === 0 && (
-        <p className="text-sm text-slate-500">No open opportunities right now.</p>
-      )}
-
-      <div className="flex flex-col gap-4">
-        {sortedOpportunities.map((opp) => {
-          const { missing, matchPercent } = getSkillMatch(opp.requiredSkills);
-          return (
-            <div
-              key={opp._id}
-              className="rounded-lg border border-slate-200 p-4 dark:border-slate-800"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">
-                  {opp.role} at {opp.company}
-                </h3>
-                <span className="text-xs font-medium text-blue-600">
-                  {matchPercent}% skill match
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{opp.eligibility}</p>
-              {opp.requiredSkills?.length > 0 && (
-                <p className="mt-1 text-xs text-slate-500">
-                  Skills: {opp.requiredSkills.join(", ")}
-                </p>
-              )}
-              {missing.length > 0 && (
-                <p className="mt-1 text-xs text-amber-600">Missing: {missing.join(", ")}</p>
-              )}
-              <p className="mt-1 text-xs text-slate-500">
-                Posted by {opp.postedBy?.name} {opp.postedBy?.company ? `(${opp.postedBy.company})` : ""}
-              </p>
-
-              {!requestedIds.has(opp._id) && (
-                <>
-                  {draftMessages[opp._id] ? (
-                    <textarea
-                      value={draftMessages[opp._id]}
-                      onChange={(e) =>
-                        setDraftMessages((prev) => ({ ...prev, [opp._id]: e.target.value }))
-                      }
-                      rows={4}
-                      className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                    />
-                  ) : (
-                    <button
-                      onClick={() => handleGenerateMessage(opp._id)}
-                      disabled={generatingFor === opp._id}
-                      className="mt-3 rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
-                    >
-                      {generatingFor === opp._id ? "Generating..." : "Generate referral message"}
-                    </button>
+                  {r.status === "pending" && (
+                    <div className="mt-4">
+                      {followUps[r._id] ? (
+                        <p className="rounded-2xl bg-white p-3 text-sm text-slate-700">
+                          {followUps[r._id]}
+                        </p>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleGenerateFollowUp(r._id)}
+                          loading={generatingFollowUp === r._id}
+                        >
+                          Generate & send follow-up
+                        </Button>
+                      )}
+                    </div>
                   )}
-                </>
-              )}
-
-              <button
-                className="mt-3 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                disabled={requestedIds.has(opp._id)}
-                onClick={() => handleRequestReferral(opp._id)}
-              >
-                {requestedIds.has(opp._id) ? "Requested" : "Request referral"}
-              </button>
+                </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
-
-      <hr className="my-10 border-slate-200 dark:border-slate-800" />
-
-      <h2 className="mb-4 text-xl font-semibold">My referral requests</h2>
-
-      {myRequests.length === 0 && (
-        <p className="text-sm text-slate-500">You haven't requested any referrals yet.</p>
-      )}
-
-      <div className="flex flex-col gap-4">
-        {myRequests.map((r) => (
-          <div key={r._id} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">
-                {r.opportunity?.role} at {r.opportunity?.company}
-              </h3>
-              <span
-                className={`text-xs font-medium ${
-                  r.status === "pending"
-                    ? "text-amber-600"
-                    : r.status === "accepted"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {r.status}
-              </span>
-            </div>
-
-            {r.status === "pending" && (
-              <>
-                {followUps[r._id] ? (
-                  <p className="mt-2 rounded-lg bg-slate-50 p-2 text-sm dark:bg-slate-900">
-                    {followUps[r._id]}
-                  </p>
-                ) : (
-                  <button
-                    onClick={() => handleGenerateFollowUp(r._id)}
-                    disabled={generatingFollowUp === r._id}
-                    className="mt-2 rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 disabled:opacity-50"
-                  >
-                    {generatingFollowUp === r._id ? "Sending..." : "Generate & send follow-up"}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-    </main>
+          </Card>
+        </Reveal>
+      </main>
+    </DashboardShell>
   );
 }
