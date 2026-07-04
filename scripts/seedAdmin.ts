@@ -1,18 +1,18 @@
-// Run with: npm run seed:admin
-// Creates (or updates) a single admin account directly in the database.
-// There is no self-serve admin signup route by design.
-import { config } from "dotenv";
-config({ path: ".env.local" });
+import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import mongoose from "mongoose";
-import User from "../src/models/User.model";
+import { connectDB } from "@/lib/db";
+import User from "@/models/User.model";
 
-async function main() {
-  const email = process.env.ADMIN_EMAIL ?? "admin@example.com";
-  const password = process.env.ADMIN_PASSWORD ?? "changeme123";
+export async function GET(req: Request) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.SEED_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  await mongoose.connect(process.env.MONGODB_URI as string);
+  await connectDB();
 
+  const email = process.env.ADMIN_EMAIL as string;
+  const password = process.env.ADMIN_PASSWORD as string;
   const passwordHash = await bcrypt.hash(password, 10);
 
   await User.findOneAndUpdate(
@@ -26,14 +26,8 @@ async function main() {
       emailVerified: true,
       profileComplete: true,
     },
-    { upsert: true, new: true }
+    { upsert: true, new: true, runValidators: false }
   );
 
-  console.log(`Admin account ready: ${email}`);
-  await mongoose.disconnect();
+  return NextResponse.json({ message: `Admin account ready: ${email}` });
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
