@@ -296,18 +296,27 @@ export default function StudentDashboard() {
           <div className="mt-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
             <p className="mb-2 text-sm font-medium">Suggested learning resources</p>
             {getRoadmapFor(analysis.missingKeywords).length > 0 ? (
-              <ul className="flex flex-col gap-1">
+              <ul className="flex flex-col gap-3">
                 {getRoadmapFor(analysis.missingKeywords).map((r) => (
                   <li key={r.skill} className="text-sm">
-                    <span className="text-slate-500">{r.skill}:</span>{" "}
-                    
-                    <a href={r.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      {r.resource}
-                    </a>
+                    <p>
+                      <span className="font-medium">{r.skill}</span>
+                      {" — "}
+                      
+                      <a  href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {r.resource}
+                      </a>
+                    </p>
+                    {r.certification && (
+                      <p className="text-xs text-slate-500">Certification: {r.certification}</p>
+                    )}
+                    {r.projectIdea && (
+                      <p className="text-xs text-slate-500">Project idea: {r.projectIdea}</p>
+                    )}
                   </li>
                 ))}
               </ul>
