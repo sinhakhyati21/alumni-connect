@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, type SyntheticEvent } from "react";
+import { useState, type SyntheticEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthLayout from "@/components/AuthLayout";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -84,5 +84,13 @@ export default function LoginPage() {
         </button>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
