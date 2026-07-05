@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthLayout from "@/components/AuthLayout";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -14,6 +14,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [justVerified, setJustVerified] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const pendingEmail = sessionStorage.getItem("pendingVerifyEmail");
@@ -101,11 +102,19 @@ function LoginForm() {
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40" />
               <input
                 required
-                type="password"
-                className="w-full rounded-lg border border-charcoal/15 bg-white py-2.5 pl-9 pr-3 text-sm transition-colors focus:border-brass focus:outline-none focus:ring-2 focus:ring-brass/15"
+                type={showPassword ? "text" : "password"}
+                className="w-full rounded-lg border border-charcoal/15 bg-white py-2.5 pl-9 pr-9 text-sm transition-colors focus:border-brass focus:outline-none focus:ring-2 focus:ring-brass/15"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal/70"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 

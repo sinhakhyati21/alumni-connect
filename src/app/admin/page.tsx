@@ -29,15 +29,14 @@ interface AdminUser {
 export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   async function loadData() {
-    setLoading(true);
     const res = await fetch("/api/admin/stats");
     const data = await res.json();
     setStats(data.stats ?? null);
     setUsers(data.users ?? []);
-    setLoading(false);
+    setInitialLoad(false);
   }
 
   async function toggleActive(userId: string, currentlyActive: boolean) {
@@ -79,7 +78,7 @@ export default function AdminPage() {
     loadData();
   }, []);
 
-  if (loading) {
+  if (initialLoad) {
     return (
       <DashboardShell title="Admin dashboard" subtitle="Monitor platform activity and manage users.">
         <main className="mx-auto max-w-5xl px-6">
