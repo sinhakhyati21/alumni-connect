@@ -47,6 +47,8 @@ function LoginForm() {
       if (res.error === "EMAIL_NOT_VERIFIED") {
         setError("Please verify your email before logging in.");
         sessionStorage.setItem("pendingVerifyEmail", form.email);
+      } else if (res.error === "ACCOUNT_DEACTIVATED") {
+        setError("This account has been deactivated. Contact an administrator.");
       } else {
         setError("Invalid email or password.");
       }

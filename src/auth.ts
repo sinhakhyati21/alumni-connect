@@ -27,7 +27,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!user.emailVerified) {
           throw new Error("EMAIL_NOT_VERIFIED");
         }
-
+        if (user.active === false) {
+          throw new Error("ACCOUNT_DEACTIVATED");
+        }
         return {
           id: user._id.toString(),
           name: user.name,
