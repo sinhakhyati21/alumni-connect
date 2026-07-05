@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Search, Handshake, Sparkles, GraduationCap, Briefcase, Bot, ArrowRight, Users, Award } from "lucide-react";
 import Reveal from "@/components/Reveal";
+import CredentialStat from "@/components/CredentialStat";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User.model";
 import Opportunity from "@/models/Opportunity.model";
 import ReferralRequest from "@/models/ReferralRequest.model";
-import CredentialStat from "@/components/CredentialStat";
 
 const steps = [
   {
@@ -108,7 +108,7 @@ export default async function LandingPage() {
         </div>
       </div>
 
-      {/* How it works */}
+      {/* How it works — stepper */}
       <section className="relative overflow-hidden bg-sage px-6 pb-24 pt-16">
         <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-brass/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-ink/5 blur-3xl" />
@@ -119,18 +119,33 @@ export default async function LandingPage() {
             <p className="mt-3 text-charcoal">Three steps from signup to your first referral.</p>
           </Reveal>
 
-          <div className="grid gap-8 sm:grid-cols-3">
-            {steps.map((s, i) => (
-              <Reveal key={s.title} delay={i * 120}>
-                <div className="group h-full rounded-xl border border-ink/8 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-lg hover:border-brass/30">
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-brass/10 text-brass transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
-                    <s.icon size={22} />
+          <div className="relative">
+            {/* Connecting line — desktop only, sits behind the circles */}
+            <div className="absolute left-0 right-0 top-7 hidden h-0.5 bg-ink/10 sm:block">
+              <div className="h-full w-full bg-gradient-to-r from-brass/60 via-brass/60 to-brass/20" />
+            </div>
+
+            <div className="relative grid gap-10 sm:grid-cols-3 sm:gap-8">
+              {steps.map((s, i) => (
+                <Reveal key={s.title} delay={i * 150}>
+                  <div className="group flex flex-col items-center text-center sm:items-start sm:text-left">
+                    <div className="relative z-10 mb-5 flex items-center gap-4 sm:flex-col sm:items-start sm:gap-0">
+                      <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full border-4 border-sage bg-white font-display text-lg font-semibold text-brass shadow-md transition-all duration-300 group-hover:scale-110 group-hover:bg-brass group-hover:text-white">
+                        {i + 1}
+                      </div>
+                    </div>
+
+                    <div className="w-full rounded-xl border border-ink/8 bg-white p-6 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-brass/30 sm:mt-5">
+                      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-brass/10 text-brass">
+                        <s.icon size={18} />
+                      </div>
+                      <h3 className="font-display text-lg font-semibold text-ink">{s.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-charcoal">{s.description}</p>
+                    </div>
                   </div>
-                  <h3 className="font-display text-xl font-semibold text-ink">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-charcoal">{s.description}</p>
-                </div>
-              </Reveal>
-            ))}
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -215,7 +230,10 @@ export default async function LandingPage() {
                 <span className="font-display text-2xl font-semibold text-ink">82<span className="text-sm text-charcoal">/100</span></span>
               </div>
               <div className="mb-5 h-2 w-full overflow-hidden rounded-full bg-sage">
-                <div className="h-full rounded-full bg-brass" style={{ width: "82%" }} />
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-600 to-emerald-500"
+                  style={{ width: "82%" }}
+                />
               </div>
               <div className="mb-4">
                 <p className="mb-1 text-xs font-medium uppercase tracking-wide text-charcoal/70">Missing keywords</p>
