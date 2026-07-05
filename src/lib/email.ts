@@ -29,3 +29,25 @@ export async function sendVerificationEmail(to: string, token: string) {
     `,
   });
 }
+
+export async function sendPasswordResetEmail(to: string, token: string) {
+  const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: "Reset your AlumniConnect password",
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2>Reset your password</h2>
+        <p>Click the button below to set a new password. This link expires in 1 hour.</p>
+        <a href="${resetUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;margin-top:12px;">
+          Reset password
+        </a>
+        <p style="color:#666;font-size:12px;margin-top:24px;">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  });
+}

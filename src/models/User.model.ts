@@ -11,6 +11,8 @@ export interface IUser extends Document {
   emailVerified: boolean;
   active: boolean;
   verificationToken?: string;
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   profileComplete: boolean;
 
   department?: string;
@@ -70,6 +72,8 @@ const UserSchema = new Schema<IUser>(
     emailVerified: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
     verificationToken: { type: String, select: false },
+    resetToken: { type: String, select: false },
+    resetTokenExpiry: { type: Date, select: false },
     profileComplete: { type: Boolean, default: false },
 
     department: { type: String, trim: true },
